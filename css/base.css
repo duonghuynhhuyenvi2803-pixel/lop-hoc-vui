@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Patrick+Hand&display=swap');
+:root {
+  --ink: #2d2230; --paper: #fff8ec; --red: #e5484d; --blue: #3e7bfa; --yellow: #f5a524; --green: #2fb36d;
+  --wood: #c98c55; --wood-d: #8f5a2f; --board: #2f5d47; --board-d: #22463a;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { font-family: 'Baloo 2', system-ui, sans-serif; color: var(--ink); background: var(--paper); -webkit-tap-highlight-color: transparent; }
+button { font-family: inherit; cursor: pointer; border: 0; }
+.btn { background: var(--ink); color: #fff; font-weight: 700; font-size: 18px; padding: 12px 22px; border-radius: 14px; box-shadow: 0 4px 0 rgba(0,0,0,.25); transition: transform .08s; }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.btn.go { background: var(--green); }
+.btn.warn { background: var(--yellow); color: var(--ink); }
+.btn.ghost { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+input, select, textarea { font-family: inherit; font-size: 17px; border: 2px solid #d9c9b0; border-radius: 12px; padding: 10px 12px; background: #fff; color: var(--ink); }
+input:focus, textarea:focus, select:focus { outline: 3px solid #ffd27a; border-color: var(--ink); }
+.opt-A { background: var(--red); } .opt-B { background: var(--blue); } .opt-C { background: var(--yellow); } .opt-D { background: var(--green); }
+[hidden] { display: none !important; }

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lớp Học Vui – Màn hình giáo viên</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/host.css">
+<script src="vendor/peerjs.min.js"></script>
+<script src="vendor/qrcode.js"></script>
+</head>
+<body>
+
+<!-- ============ CÀI ĐẶT ============ -->
+<section id="setup" class="setup">
+  <header class="setup-head">
+    <h1>🏫 Lớp Học Vui</h1>
+    <p>Chuẩn bị bộ câu hỏi rồi mở lớp. Học sinh vào bằng QR hoặc mã PIN trên điện thoại.</p>
+  </header>
+  <div class="setup-grid">
+    <div class="card">
+      <h2>⚙️ Thiết lập</h2>
+      <label>Tên lớp <input id="className" maxlength="40" placeholder="VD: 10A1 – Grammar Review"></label>
+      <label>Số câu mỗi session: <b id="nqLabel">20</b>
+        <input id="nq" type="range" min="15" max="20" value="20"></label>
+      <label class="chk"><input id="shuffle" type="checkbox"> Xáo trộn thứ tự câu hỏi</label>
+      <label class="chk"><input id="tts" type="checkbox" checked> 🔊 Đọc to câu hỏi</label>
+      <label class="chk"><input id="readOpts" type="checkbox"> Đọc cả các lựa chọn A/B/C/D</label>
+      <label class="chk"><input id="waitRead" type="checkbox" checked> Đọc xong mới bắt đầu tính 20 giây</label>
+      <label>Giọng đọc <select id="voice"></select></label>
+      <label class="chk"><input id="autoNext" type="checkbox"> Tự chuyển câu sau 8 giây</label>
+      <div class="rules">
+        <b>Luật điểm:</b> mỗi câu 20 giây. Trả lời đúng ngay lập tức = <b>sĩ số lớp</b> điểm, giảm dần còn một nửa ở giây cuối. Sai / không trả lời = 0.
+        Sau mỗi câu cả lớp đổi chỗ: điểm cao ngồi bàn đầu.
+      </div>
+    </div>
+    <div class="card qcard">
+      <h2>📝 Bộ câu hỏi <span id="qCount" class="pill">0 câu</span></h2>
+      <div class="row">
+        <button class="btn ghost sm" id="loadSample">Dùng bộ mẫu</button>
+        <button class="btn ghost sm" id="openFile">Mở file .txt</button>
+        <input type="file" id="file" accept=".txt,.md,text/plain" hidden>
+        <button class="btn ghost sm" id="help">Cách viết?</button>
+      </div>
+      <div id="helpBox" class="help" hidden>
+        Mỗi câu cách nhau <b>1 dòng trống</b>. Dòng đầu là câu hỏi, các dòng sau là lựa chọn <code>A.</code> <code>B.</code> <code>C.</code> <code>D.</code> (2–4 lựa chọn).
+        Đánh dấu đáp án đúng bằng dấu <code>*</code> ở đầu dòng, hoặc thêm dòng <code>Answer: B</code>. Chỗ trống viết <code>___</code> sẽ được đọc là "blank".
+      </div>
+      <textarea id="qtext" spellcheck="false" placeholder="She ___ to school every day.&#10;A. go&#10;*B. goes&#10;C. going&#10;D. gone"></textarea>
+      <div id="qErrors" class="errors"></div>
+    </div>
+  </div>
+  <div class="setup-foot">
+    <button class="btn go big" id="openClass">Mở lớp học →</button>
+  </div>
+</section>
+
+<!-- ============ LỚP HỌC ============ -->
+<section id="game" hidden>
+  <div id="stage">
+    <div class="wall">
+      <div class="clock-deco"></div>
+      <div class="teacher-zone">
+        <div id="bubble" class="bubble">Chào cả lớp!</div>
+        <div id="teacher" class="teacher"></div>
+        <div class="tdesk"></div>
+      </div>
+      <div id="board" class="board"></div>
+      <div class="side">
+        <div id="timer" class="timer">
+          <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" class="tr-bg"/><circle id="timerArc" cx="60" cy="60" r="52" class="tr-fg"/></svg>
+          <div id="timerNum">20</div>
+        </div>
+        <div id="controls" class="controls"></div>
+      </div>
+    </div>
+    <div class="floor"></div>
+    <div id="desks"></div>
+    <div id="students"></div>
+    <div id="labels"></div>
+    <div id="podium" class="podium" hidden></div>
+    <canvas id="confetti" width="1600" height="900"></canvas>
+  </div>
+  <div class="corner">
+    <button id="muteBtn" title="Tắt/bật âm thanh">🔊</button>
+    <button id="fsBtn" title="Toàn màn hình">⛶</button>
+  </div>
+</section>
+
+<script type="module" src="js/host.js"></script>
+</body>
+</html>

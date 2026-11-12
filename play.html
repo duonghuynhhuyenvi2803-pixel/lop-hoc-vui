@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#2f5d47">
+<title>Lớp Học Vui – Vào lớp</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/play.css">
+<script src="vendor/peerjs.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <!-- Vào lớp -->
+  <section id="sJoin" class="screen">
+    <h1>🏫 Lớp Học Vui</h1>
+    <label>Mã PIN<input id="pin" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off"></label>
+    <label>Tên của bạn<input id="name" maxlength="18" placeholder="VD: Minh Anh" autocomplete="off"></label>
+    <div class="maker">
+      <div id="preview" class="preview"></div>
+      <div class="pickers" id="pickers"></div>
+      <button class="btn ghost sm" id="rand">🎲 Ngẫu nhiên</button>
+    </div>
+    <button class="btn go big" id="joinBtn">Vào lớp</button>
+    <p id="joinErr" class="err"></p>
+  </section>
+
+  <!-- Thông báo / chờ -->
+  <section id="sWait" class="screen center" hidden>
+    <div id="wAva" class="bigava"></div>
+    <div id="wName" class="wname"></div>
+    <div id="wInfo" class="winfo"></div>
+    <div id="wMsg" class="wmsg"></div>
+  </section>
+
+  <!-- Câu hỏi -->
+  <section id="sQ" class="screen q" hidden>
+    <div class="qtop"><span id="qNo"></span><span id="qScore"></span></div>
+    <div class="tbar"><div id="tfill"></div></div>
+    <div id="qText" class="qtext"></div>
+    <div id="qHint" class="qhint"></div>
+    <div id="opts" class="opts"></div>
+  </section>
+
+  <!-- Kết quả câu -->
+  <section id="sRes" class="screen center res" hidden>
+    <div id="rIcon" class="ricon"></div>
+    <div id="rTitle" class="rtitle"></div>
+    <div id="rGain" class="rgain"></div>
+    <div id="rInfo" class="rinfo"></div>
+  </section>
+</div>
+<div id="net" class="net" hidden></div>
+<script type="module" src="js/play.js"></script>
+</body>
+</html>
