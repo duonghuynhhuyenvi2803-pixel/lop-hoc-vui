@@ -1,25 +1,23 @@
 import { createHost, IS_LOCAL } from './net.js';
 import { avatarSVG, teacherSVG, randomLook, sanitizeLook } from './avatar.js';
-import { parseQuestions, SAMPLE, speakText } from './questions.js';
+import { parseQuestions, SAMPLE, TEMPLATES, TYPES, speakText, isChoice, check, answerLabel, shuffleChunks, norm } from './questions.js';
 import * as S from './sound.js';
 
-const MAX = 40, COLS = 8, ROWS = 5, QTIME = 20;
+const MAX = 40, COLS = 8, ROWS = 5;
 const ROW_Y0 = 318, ROW_H = 116, PAIR_W = 330, GAP = 52;
 const X0 = (1600 - (4 * PAIR_W + 3 * GAP)) / 2;
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const LET = 'ABCD';
 
-/* ---------- Ghế ngồi: thứ tự "ưu tiên" = bàn đầu, ở giữa trước ---------- */
+/* ---------- Ghế ngồi ---------- */
 function seatPos(i) {
   const r = Math.floor(i / COLS), c = i % COLS, pair = Math.floor(c / 2), side = c % 2;
   const x = X0 + pair * (PAIR_W + GAP) + (side ? PAIR_W * 0.74 : PAIR_W * 0.26);
   return { x, y: ROW_Y0 + r * ROW_H, r, c };
 }
-const PRESTIGE = [...Array(MAX).keys()].sort((a, b) => {
-  const A = seatPos(a), B = seatPos(b);
-  return A.r - B.r || Math.abs(A.c - 3.5) - Math.abs(B.c - 3.5) || A.c - B.c;
-});
+// Hạng 1 ngồi gần bàn giáo viên nhất (bàn đầu, bên trái), rồi trái → phải, trên → dưới
+const PRESTIGE = [...Array(MAX).keys()];
 
 /* ---------- Trạng thái ---------- */
 const st = {
@@ -31,7 +29,7 @@ const st = {
 };
 
 /* ================= SETUP ================= */
-const LS = 'lophocvui-host';
+const LS = 'lophocvui-host-v2';
 function loadSetup() {
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) {}
@@ -59,6 +57,8 @@ function readSetup() {
 function validate() {
   const { questions, errors } = parseQuestions($('#qtext').value);
   $('#qCount').textContent = questions.length + ' câu';
+  const by = {}; questions.forEach((q) => (by[q.type] = (by[q.type] || 0) + 1));
+  $('#qTypes').innerHTML = Object.keys(TYPES).filter((k) => by[k]).map((k) => `<span>${TYPES[k].icon} ${TYPES[k].name}: <b>${by[k]}</b></span>`).join('');
   $('#qCount').style.background = questions.length ? '' : 'var(--red)';
   $('#qErrors').innerHTML = errors.slice(0, 8).map(esc).join('<br>') + (errors.length > 8 ? `<br>… và ${errors.length - 8} lỗi khác` : '');
   return questions;
@@ -75,6 +75,11 @@ function loadVoices() {
 $('#nq').oninput = () => ($('#nqLabel').textContent = $('#nq').value);
 $('#qtext').oninput = validate;
 $('#loadSample').onclick = () => { if (!$('#qtext').value.trim() || confirm('Thay nội dung hiện tại bằng bộ câu hỏi mẫu?')) { $('#qtext').value = SAMPLE; validate(); } };
+document.querySelectorAll('[data-tpl]').forEach((b) => (b.onclick = () => {
+  const ta = $('#qtext'), cur = ta.value.replace(/\s+$/, '');
+  ta.value = (cur ? cur + '\n\n' : '') + TEMPLATES[b.dataset.tpl];
+  ta.scrollTop = ta.scrollHeight; ta.focus(); validate();
+}));
 $('#help').onclick = () => ($('#helpBox').hidden = !$('#helpBox').hidden);
 $('#openFile').onclick = () => $('#file').click();
 $('#file').onchange = async (e) => { const f = e.target.files[0]; if (f) { $('#qtext').value = await f.text(); validate(); } };
@@ -102,7 +107,7 @@ async function openRoom() {
   for (let tries = 0; tries < 5; tries++) {
     const pin = String(Math.floor(100000 + Math.random() * 900000));
     try {
-      st.net = await createHost(pin, { onMessage, onClose, onError: (e) => console.warn('peer', e) });
+      st.net = await createHost(pin, { onMessage, onClose, onNet: (on) => toast(on ? '✅ Đã kết nối lại' : '⚠️ Mất mạng – đang kết nối lại…', on ? 2000 : 0) });
       st.pin = pin; return;
     } catch (e) { if (e && e.type !== 'unavailable-id') throw e; }
   }
@@ -183,7 +188,7 @@ function onClose(key) {
   if (p && p.key === key) { p.key = null; p.el && p.el.classList.add('off'); updateStats(); }
 }
 function send(p, msg) { if (p.key && !p.bot) st.net.send(p.key, msg); }
-function broadcast(msg) { st.players.forEach((p) => send(p, msg)); }
+function broadcast(msg) { st.net.broadcast(msg); }
 
 function uniqueName(name, cid) {
   let n = name, i = 2;
@@ -222,8 +227,8 @@ function welcomeMsg(p) {
   const base = { t: 'welcome', name: p.name, seat: PRESTIGE.indexOf(p.seat) + 1, score: p.score, rank: p.rank, n: st.players.size, phase: st.phase, cls: st.settings.className };
   if (q && (st.phase === 'reading' || st.phase === 'question')) {
     base.q = qMsg();
-    if (st.phase === 'question') base.remaining = Math.max(0, QTIME - (performance.now() - st.t0) / 1000);
-    base.answered = p.answer ? p.answer.choice : null;
+    if (st.phase === 'question') base.remaining = Math.max(0, st.qtime - (performance.now() - st.t0) / 1000);
+    base.answered = p.answer ? p.answer.v : null;
   }
   return base;
 }
@@ -248,11 +253,12 @@ function addBots(n) {
 function scheduleBots() {
   st.players.forEach((p) => {
     if (!p.bot) return;
-    const ms = 1500 + Math.random() * 15000 * (1.3 - p.skill);
+    const ms = 1500 + Math.random() * st.qtime * 750 * (1.3 - p.skill);
     p.botT = setTimeout(() => {
       const q = st.session[st.qi];
-      const choice = Math.random() < p.skill ? q.correct : Math.floor(Math.random() * q.options.length);
-      handleAnswer(p, { t: 'ans', i: st.qi, c: choice });
+      const good = Math.random() < p.skill;
+      if (isChoice(q)) handleAnswer(p, { t: 'ans', i: st.qi, c: good ? q.correct : Math.floor(Math.random() * q.options.length) });
+      else handleAnswer(p, { t: 'ans', i: st.qi, v: good ? q.answers[0] : ['for', 'goed', 'I walk to school', 'is'][Math.floor(Math.random() * 4)] });
     }, ms);
   });
 }
@@ -260,7 +266,7 @@ function scheduleBots() {
 /* ================= PHA: SẢNH CHỜ ================= */
 function joinURL() {
   const base = location.href.replace(/host(\.html)?[^/]*$/, '').split('?')[0].replace(/[^/]*$/, '');
-  return `${base}play.html?pin=${st.pin}${IS_LOCAL ? '&local=1' : ''}`;
+  return `${base}play.html?pin=${st.pin}${IS_LOCAL ? '&local=1' : new URLSearchParams(location.search).get('broker') ? '&broker=' + encodeURIComponent(new URLSearchParams(location.search).get('broker')) : st.net.broker ? '&b=' + st.net.broker : ''}`;
 }
 function toLobby() {
   st.phase = 'lobby';
@@ -296,11 +302,12 @@ function renderControls() {
     btn('+5 học sinh ảo', 'tiny', () => addBots(5));
     if ([...st.players.values()].some((p) => p.bot)) btn('Xoá học sinh ảo', 'tiny', removeBots);
   } else if (st.phase === 'reading' || st.phase === 'question') {
-    btn('🔊 Đọc lại', 'tiny', () => speak(speakText(st.session[st.qi], st.settings.readOpts)));
+    { const q = st.session[st.qi]; if (q.type !== 'order') btn('🔊 Đọc lại', 'tiny', () => speak(speakText(q, st.settings.readOpts), q.type === 'listen')); }
     btn('⏭ Chốt đáp án', 'tiny', closeQuestion);
   } else if (st.phase === 'reveal') {
     const last = st.qi >= st.session.length - 1;
     btn(last ? '🏆 Vinh danh' : 'Câu tiếp ▶', 'go', next);
+    if (st.lastInfo) btn(st.boardView === 'speed' ? '📋 Xem đáp án' : '⏱ Ai nhanh nhất?', 'tiny', () => showSpeed(st.boardView !== 'speed'));
   }
 }
 function removeBots() {
@@ -327,42 +334,76 @@ function next() {
   if (st.qi >= st.session.length - 1) return showPodium();
   st.qi++;
   const q = st.session[st.qi];
+  st.qtime = q.time || 20;
+  if (q.type === 'order') q.shuffled = shuffleChunks(q.chunks);
   st.phase = 'reading';
   st.players.forEach((p) => { p.answer = null; p.gain = 0; setMark(p, null); setMood(p, 'think'); });
   renderBoard(false);
-  timerSet(QTIME, QTIME); $('#timer').classList.remove('idle', 'urgent');
-  say(st.settings.tts ? '🔊 Cô đọc câu hỏi nhé…' : 'Sẵn sàng…');
+  timerSet(st.qtime, st.qtime); $('#timer').classList.remove('idle', 'urgent');
   renderControls();
   broadcast({ t: 'q', q: qMsg() });
   const text = speakText(q, st.settings.readOpts);
-  if (st.settings.tts && st.settings.waitRead) speak(text).then(() => { if (st.phase === 'reading' && st.session[st.qi] === q) openQuestion(); });
-  else { if (st.settings.tts) speak(text); setTimeout(openQuestion, 600); }
+  const mustRead = q.type === 'listen';             // nghe chép luôn đọc và đợi đọc xong
+  const doRead = text && (st.settings.tts || mustRead);
+  say(doRead ? (mustRead ? '🎧 Nghe kỹ nhé…' : '🔊 Cô đọc câu hỏi nhé…') : 'Sẵn sàng…');
+  if (doRead && (st.settings.waitRead || mustRead)) speak(text, mustRead).then(() => { if (st.phase === 'reading' && st.session[st.qi] === q) openQuestion(); });
+  else { if (doRead) speak(text); setTimeout(openQuestion, 700); }
 }
 function qMsg() {
   const q = st.session[st.qi];
-  return { i: st.qi, total: st.session.length, text: q.text, options: q.options };
+  const m = { i: st.qi, total: st.session.length, type: q.type, time: st.qtime };
+  if (q.type === 'listen') return m;                 // không lộ câu
+  m.text = q.type === 'order' ? '' : q.text;
+  if (isChoice(q)) m.options = q.options;
+  if (q.type === 'error') m.segs = q.segs;
+  if (q.type === 'order') m.chunks = q.shuffled;
+  return m;
 }
-function renderBoard(reveal, counts) {
+function renderBoard(reveal, info) {
   const q = st.session[st.qi];
-  const fs = q.text.length < 60 ? 46 : q.text.length < 110 ? 36 : q.text.length < 170 ? 29 : 23;
+  const T = TYPES[q.type];
+  const head = `<div class="b-head"><span>Câu ${st.qi + 1}/${st.session.length} · ${T.icon} ${T.name}</span><span>${esc(st.settings.className || '')}</span></div>`;
+  const size = (s) => (s.length < 60 ? 46 : s.length < 110 ? 36 : s.length < 170 ? 29 : 23);
   const ofs = (o) => (o.length < 22 ? 27 : o.length < 40 ? 22 : 17);
-  $('#board').className = 'board' + (reveal ? ' reveal' : '');
-  $('#board').innerHTML = `<div class="b-head"><span>Câu ${st.qi + 1}/${st.session.length}</span><span>${esc(st.settings.className || '')}</span></div>
-    <div class="b-q" style="font-size:${fs}px">${esc(q.text)}</div>
-    <div class="b-opts">${q.options.map((o, i) => `<div class="b-opt opt-${LET[i]} ${reveal ? (i === q.correct ? 'right' : 'wrong') : ''}">
-      <span class="let">${LET[i]}</span><span class="txt" style="font-size:${ofs(o)}px">${esc(o)}</span><span class="cnt">${counts ? counts[i] : 0}</span></div>`).join('')}</div>`;
+  let body = '';
+  if (q.type === 'error') {
+    const html = q.segs.map((s) => s.p == null ? esc(s.t)
+      : `<span class="part ${reveal && s.p === q.correct ? 'bad' : ''}"><u>${esc(s.t)}</u><sub>${LET[s.p]}</sub></span>`).join('');
+    body += `<div class="b-q" style="font-size:${Math.min(42, size(q.text))}px"><span class="sent">${html}</span></div>`;
+  } else if (q.type === 'order') {
+    body += reveal ? `<div class="b-q" style="font-size:${size(q.text)}px">${esc(q.text)}</div>`
+      : `<div class="b-q chips">${q.shuffled.map((c) => `<span class="chip">${esc(c)}</span>`).join('')}</div>`;
+  } else if (q.type === 'listen') {
+    body += reveal ? `<div class="b-q" style="font-size:${size(q.text)}px">${esc(q.text)}</div>`
+      : `<div class="b-q listen">🎧 Nghe cô đọc rồi gõ lại câu trên điện thoại</div>`;
+  } else {
+    body += `<div class="b-q" style="font-size:${size(q.text)}px">${esc(q.text)}</div>`;
+  }
+  if (isChoice(q)) {
+    const counts = info && info.counts;
+    body += `<div class="b-opts n${q.options.length}">${q.options.map((o, i) => `<div class="b-opt opt-${LET[i]} ${reveal ? (i === q.correct ? 'right' : 'wrong') : ''}">
+      <span class="let">${LET[i]}</span><span class="txt" style="font-size:${ofs(o)}px">${esc(q.type === 'tf' ? (i ? '✗ False' : '✓ True') : o)}</span><span class="cnt">${counts ? counts[i] : 0}</span></div>`).join('')}</div>`;
+  } else if (reveal && info) {
+    const wrong = info.wrong.slice(0, 4).map(([w, n]) => `<span class="wa">${esc(w)} <b>×${n}</b></span>`).join('');
+    body += `<div class="b-ans"><div class="ok">✓ ${esc(q.answers[0])} <b>${info.right} bạn</b></div>
+      ${wrong ? `<div class="wrongs">Sai nhiều: ${wrong}</div>` : ''}</div>`;
+  } else {
+    body += `<div class="b-type">${q.type === 'order' ? '🧩 Chạm các từ theo đúng thứ tự trên điện thoại' : '✍️ Gõ đáp án trên điện thoại'}</div>`;
+  }
+  $('#board').className = 'board t-' + q.type + (reveal ? ' reveal' : '');
+  $('#board').innerHTML = head + body;
 }
 function openQuestion() {
   if (st.phase !== 'reading') return;
   st.phase = 'question'; st.t0 = performance.now();
-  broadcast({ t: 'open', i: st.qi, remaining: QTIME });
+  broadcast({ t: 'open', i: st.qi, remaining: st.qtime });
   updateAnswered();
   scheduleBots();
-  let lastSec = QTIME;
+  let lastSec = st.qtime;
   clearInterval(st.timerInt);
   st.timerInt = setInterval(() => {
-    const left = QTIME - (performance.now() - st.t0) / 1000;
-    timerSet(Math.max(0, left), QTIME);
+    const left = st.qtime - (performance.now() - st.t0) / 1000;
+    timerSet(Math.max(0, left), st.qtime);
     const sec = Math.ceil(left);
     if (sec !== lastSec) { lastSec = sec; if (sec <= 5 && sec > 0) S.tick(true); }
     if (left <= 0) { S.timeUp(); closeQuestion(); }
@@ -375,10 +416,12 @@ function updateAnswered() {
 function handleAnswer(p, m) {
   if (st.phase !== 'question' || p.answer || m.i !== st.qi) return;
   const q = st.session[st.qi];
-  const c = Number(m.c); if (!(c >= 0 && c < q.options.length)) return;
-  p.answer = { choice: c, ms: performance.now() - st.t0 };
+  let v;
+  if (isChoice(q)) { v = Number(m.c); if (!(v >= 0 && v < q.options.length)) return; }
+  else { v = String(m.v ?? '').slice(0, 160).trim(); if (!v) return; }
+  p.answer = { v, ok: check(q, v), ms: performance.now() - st.t0 };
   setMood(p, 'done'); setMark(p, 'answered');
-  send(p, { t: 'got', c });
+  send(p, { t: 'got', v });
   updateAnswered();
   const active = [...st.players.values()].filter((x) => x.key || x.bot);
   if (active.length && active.every((x) => x.answer)) setTimeout(closeQuestion, 500);
@@ -389,13 +432,19 @@ function closeQuestion() {
   st.players.forEach((p) => clearTimeout(p.botT));
   try { speechSynthesis.cancel(); } catch (e) {}
   st.phase = 'reveal';
-  const q = st.session[st.qi], N = st.players.size;
-  const counts = q.options.map(() => 0);
+  const q = st.session[st.qi], N = st.players.size, T = st.qtime * 1000;
+  const info = { counts: isChoice(q) ? q.options.map(() => 0) : null, right: 0, wrong: [] };
+  const wrongMap = new Map();
+  // Điểm theo thứ tự: đúng nhanh nhất = sĩ số lớp, nhì = sĩ số − 1, …
+  const rightOrder = [...st.players.values()].filter((p) => p.answer && p.answer.ok).sort((a, b) => a.answer.ms - b.answer.ms);
+  rightOrder.forEach((p, i) => { p.answer.pos = i + 1; });
   st.players.forEach((p) => {
     p.prevRank = p.rank;
-    if (p.answer) counts[p.answer.choice]++;
-    const ok = p.answer && p.answer.choice === q.correct;
-    p.gain = ok ? Math.max(1, Math.round(N * (1 - 0.5 * Math.min(p.answer.ms, QTIME * 1000) / (QTIME * 1000)))) : 0;
+    const ok = !!(p.answer && p.answer.ok);
+    if (p.answer && info.counts) info.counts[p.answer.v]++;
+    if (p.answer && !ok && !info.counts) { const k = norm(p.answer.v); wrongMap.set(k, [p.answer.v, (wrongMap.get(k)?.[1] || 0) + 1]); }
+    if (ok) info.right++;
+    p.gain = ok ? Math.max(1, N - (p.answer.pos - 1)) : 0;
     p.score += p.gain;
     setMood(p, ok ? 'happy' : 'sad'); setMark(p, ok ? 'ok' : p.answer ? 'no' : null);
     p.lb.querySelector('.sc').textContent = p.score;
@@ -403,20 +452,37 @@ function closeQuestion() {
     g.classList.remove('show'); void g.offsetWidth;
     if (ok) { g.textContent = '+' + p.gain; g.classList.add('show'); }
   });
+  info.wrong = [...wrongMap.values()].sort((a, b) => b[1] - a[1]);
+  info.speed = [...st.players.values()].filter((p) => p.answer).sort((a, b) => a.answer.ms - b.answer.ms)
+    .map((p) => ({ name: p.name, s: p.answer.ms / 1000, ok: p.answer.ok, gain: p.gain }));
+  info.none = [...st.players.values()].filter((p) => !p.answer).map((p) => p.name);
+  st.lastInfo = info; st.boardView = 'answer';
   broadcast({ t: 'closed', i: st.qi });
-  renderBoard(true, counts);
+  renderBoard(true, info);
   timerIdle();
   S.reveal();
-  const right = [...st.players.values()].filter((p) => p.gain > 0).length;
-  say(`Đáp án <b>${LET[q.correct]}</b> · ${right}/${N} bạn đúng`);
+  say(isChoice(q) ? `Đáp án <b>${LET[q.correct]}</b> · ${info.right}/${N} bạn đúng` : `<b>${info.right}</b>/${N} bạn đúng`);
   renderControls();
-  const qi = st.qi;
+  const qi = st.qi, label = answerLabel(q);
   setTimeout(() => {
     if (st.qi !== qi || st.phase !== 'reveal') return;
     rearrange(true);
-    st.players.forEach((p) => send(p, { t: 'res', i: qi, correct: q.correct, choice: p.answer ? p.answer.choice : null, gain: p.gain, score: p.score, rank: p.rank, prev: p.prevRank, n: N }));
+    if (st.phase === 'reveal' && st.qi === qi) showSpeed(true);
+    st.players.forEach((p) => send(p, { t: 'res', i: qi, ans: label, answered: !!p.answer, sec: p.answer ? +(p.answer.ms / 1000).toFixed(1) : null, pos: p.answer && p.answer.pos ? p.answer.pos : null, gain: p.gain, score: p.score, rank: p.rank, prev: p.prevRank, n: N }));
     if (st.settings.autoNext) st.autoT = setTimeout(() => { if (st.phase === 'reveal' && st.qi === qi) next(); }, 8000);
   }, 2200);
+}
+
+function showSpeed(on) {
+  st.boardView = on ? 'speed' : 'answer';
+  if (!on) { renderBoard(true, st.lastInfo); renderControls(); return; }
+  const info = st.lastInfo, q = st.session[st.qi];
+  const rows = info.speed.map((r, i) => `<div class="sp ${r.ok ? 'ok' : 'no'}"><span class="n">${i + 1}</span><span class="nm">${esc(r.name)}</span><span class="tm">${r.s.toFixed(1)}s</span><span class="g">${r.ok ? '+' + r.gain : '✗'}</span></div>`).join('');
+  const none = info.none.length ? `<div class="sp-none">⏰ Chưa trả lời (${info.none.length}): ${info.none.map(esc).join(', ')}</div>` : '';
+  $('#board').className = 'board speed';
+  $('#board').innerHTML = `<div class="b-head"><span>⏱ Ai trả lời lúc mấy giây? · Câu ${st.qi + 1}/${st.session.length}</span><span>Đáp án: ${esc(answerLabel(q))}</span></div>
+    <div class="sp-grid c${info.speed.length > 32 ? 5 : info.speed.length > 24 ? 4 : info.speed.length > 8 ? 3 : 1}">${rows || '<div class="sp-empty">Chưa ai trả lời câu này 😅</div>'}</div>${none}`;
+  renderControls();
 }
 
 function rearrange(animate) {
@@ -445,22 +511,28 @@ function timerSet(left, total) {
   $('#timerArc').style.strokeDashoffset = 326.7 * (1 - left / total);
   $('#timer').classList.toggle('urgent', left <= 5 && left > 0);
 }
-function timerIdle() { $('#timer').classList.add('idle'); $('#timer').classList.remove('urgent'); $('#timerNum').textContent = QTIME; $('#timerArc').style.strokeDashoffset = 0; }
+function timerIdle() { $('#timer').classList.add('idle'); $('#timer').classList.remove('urgent'); $('#timerNum').textContent = st.qtime || 20; $('#timerArc').style.strokeDashoffset = 0; }
+let toastEl = null;
+function toast(text, ms) {
+  if (!toastEl) { toastEl = document.createElement('div'); toastEl.className = 'toast'; document.body.appendChild(toastEl); }
+  toastEl.textContent = text; toastEl.hidden = false;
+  clearTimeout(toastEl._t); if (ms) toastEl._t = setTimeout(() => (toastEl.hidden = true), ms);
+}
 function say(html) { $('#bubble').innerHTML = html; }
 
-function speak(text) {
+function speak(text, force) {
   return new Promise((res) => {
-    if (!st.settings.tts || !('speechSynthesis' in window)) return res();
+    if (!text || (!st.settings.tts && !force) || !('speechSynthesis' in window)) return res();
     let done = false; const fin = () => { if (!done) { done = true; res(); } };
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
       const v = st.voices.find((v) => v.name === st.settings.voice);
       if (v) { u.voice = v; u.lang = v.lang; } else u.lang = 'en-US';
-      u.rate = 0.92; u.onend = fin; u.onerror = fin;
+      u.rate = force ? 0.8 : 0.92; u.onend = fin; u.onerror = fin;
       speechSynthesis.speak(u);
     } catch (e) { fin(); }
-    setTimeout(fin, 2500 + text.length * 95);
+    setTimeout(fin, 2500 + text.length * (force ? 120 : 95));
   });
 }
 

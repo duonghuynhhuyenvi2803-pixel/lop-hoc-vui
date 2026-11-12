@@ -52,3 +52,22 @@ label input { display: block; width: 100%; margin-top: 4px; font-size: 22px; fon
 @keyframes spin { from { transform: scale(0) rotate(-200deg); } }
 
 .net { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); background: #ffe27a; color: var(--ink); padding: 6px 16px; border-radius: 99px; font-weight: 700; font-size: 15px; box-shadow: 0 3px 0 rgba(0,0,0,.2); white-space: nowrap; }
+
+/* nhiều dạng bài */
+.qtext small { font-size: 15px; opacity: .7; }
+.qtext.big { font-size: 22px; }
+.qtext u { text-decoration-thickness: 3px; text-underline-offset: 4px; }
+.qtext sup { font-size: 13px; color: #c0392b; font-weight: 800; margin-left: 1px; }
+.opts.tf { grid-template-rows: 1fr 1fr; } .opts.tf button { justify-content: center; font-size: 30px; } .opts.tf .l { display: none; }
+.opts.typing { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: none; }
+.opts.typing input { font-size: 24px; font-weight: 700; padding: 14px; text-align: center; }
+.opts.order { display: flex; flex-direction: column; gap: 12px; min-height: 0; flex: none; }
+.built { min-height: 110px; background: #fff8ec; border-radius: 16px; padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; align-content: flex-start; }
+.built .ph { color: #9b8a76; font-weight: 600; margin: auto; }
+.pool { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.chip { font-size: 20px; font-weight: 700; background: #fff; color: var(--ink); border-radius: 12px; padding: 8px 14px; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.chip.on { background: #ffe27a; }
+.chip.used { visibility: hidden; }
+.orow { display: flex; gap: 10px; } .orow .btn { flex: 1; font-size: 20px; }
+.opts.locked .chip, .opts.locked input { opacity: .6; }
+.rans { font-size: 24px; font-weight: 800; background: #fff; color: var(--ink); border-radius: 14px; padding: 6px 16px; margin-bottom: 12px; }

@@ -6,7 +6,7 @@
 <title>Lớp Học Vui – Màn hình giáo viên</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/host.css">
-<script src="vendor/peerjs.min.js"></script>
+<script src="vendor/mqtt.min.js"></script>
 <script src="vendor/qrcode.js"></script>
 </head>
 <body>
@@ -30,8 +30,8 @@
       <label>Giọng đọc <select id="voice"></select></label>
       <label class="chk"><input id="autoNext" type="checkbox"> Tự chuyển câu sau 8 giây</label>
       <div class="rules">
-        <b>Luật điểm:</b> mỗi câu 20 giây. Trả lời đúng ngay lập tức = <b>sĩ số lớp</b> điểm, giảm dần còn một nửa ở giây cuối. Sai / không trả lời = 0.
-        Sau mỗi câu cả lớp đổi chỗ: điểm cao ngồi bàn đầu.
+        <b>Luật điểm:</b> mỗi câu 20 giây. Bạn đúng <b>nhanh nhất</b> được điểm bằng <b>sĩ số lớp</b> (lớp 25 bạn → 25 điểm), bạn đúng thứ nhì 24, thứ ba 23… Sai / không trả lời = 0.
+        Sau mỗi câu cả lớp đổi chỗ: hạng 1 ngồi gần bàn giáo viên nhất, rồi lần lượt từ trái qua phải, từ trên xuống dưới.
       </div>
     </div>
     <div class="card qcard">
@@ -42,11 +42,28 @@
         <input type="file" id="file" accept=".txt,.md,text/plain" hidden>
         <button class="btn ghost sm" id="help">Cách viết?</button>
       </div>
+      <div class="row tpls">Thêm câu:
+        <button class="btn sm tpl" data-tpl="mc">🔤 Trắc nghiệm</button>
+        <button class="btn sm tpl" data-tpl="tf">⚖️ Đúng/Sai</button>
+        <button class="btn sm tpl" data-tpl="fill">✍️ Điền từ</button>
+        <button class="btn sm tpl" data-tpl="order">🧩 Sắp xếp câu</button>
+        <button class="btn sm tpl" data-tpl="error">🔍 Tìm lỗi sai</button>
+        <button class="btn sm tpl" data-tpl="listen">🎧 Nghe & chép</button>
+      </div>
       <div id="helpBox" class="help" hidden>
-        Mỗi câu cách nhau <b>1 dòng trống</b>. Dòng đầu là câu hỏi, các dòng sau là lựa chọn <code>A.</code> <code>B.</code> <code>C.</code> <code>D.</code> (2–4 lựa chọn).
-        Đánh dấu đáp án đúng bằng dấu <code>*</code> ở đầu dòng, hoặc thêm dòng <code>Answer: B</code>. Chỗ trống viết <code>___</code> sẽ được đọc là "blank".
+        Mỗi câu cách nhau <b>1 dòng trống</b>. Bấm các nút "Thêm câu" ở trên để chèn mẫu rồi sửa lại.
+        <table>
+          <tr><td>🔤 Trắc nghiệm</td><td>Dòng đầu là câu hỏi, sau đó <code>A.</code> <code>B.</code>… Thêm <code>*</code> trước đáp án đúng.</td></tr>
+          <tr><td>⚖️ Đúng/Sai</td><td><code>[TF] câu nhận định</code> + dòng <code>Answer: True</code> / <code>False</code></td></tr>
+          <tr><td>✍️ Điền từ</td><td><code>[FILL] câu có ___</code> + dòng <code>Answer: since | for</code> (nhiều đáp án đúng thì ngăn bằng <code>|</code>)</td></tr>
+          <tr><td>🧩 Sắp xếp câu</td><td><code>[ORDER] câu đúng</code>, máy tự xáo. Muốn giữ cụm từ thì ngăn bằng <code> / </code></td></tr>
+          <tr><td>🔍 Tìm lỗi sai</td><td><code>[ERROR]</code> đặt 2–4 phần trong <code>[ ]</code>, phần sai thêm <code>*</code>: <code>[*have]</code></td></tr>
+          <tr><td>🎧 Nghe & chép</td><td><code>[LISTEN] câu sẽ được đọc</code>. Học sinh nghe rồi gõ lại.</td></tr>
+        </table>
+        Thêm dòng <code>Time: 30</code> nếu câu đó cần hơn 20 giây. Không phân biệt hoa/thường và dấu câu khi chấm phần gõ.
       </div>
       <textarea id="qtext" spellcheck="false" placeholder="She ___ to school every day.&#10;A. go&#10;*B. goes&#10;C. going&#10;D. gone"></textarea>
+      <div id="qTypes" class="qtypes"></div>
       <div id="qErrors" class="errors"></div>
     </div>
   </div>

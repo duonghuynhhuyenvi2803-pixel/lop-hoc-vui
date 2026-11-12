@@ -57,16 +57,17 @@ $('#joinBtn').onclick = () => {
 function connect() {
   $('#joinBtn').disabled = true; $('#joinBtn').textContent = 'Đang vào lớp…';
   if (net) net.stop();
+  const b = url.get('pin') === pin ? +(url.get('b') || 0) : 0;
   net = joinRoom(pin, {
     onOpen: () => { netMsg(''); net.send({ t: 'join', cid: me.cid, name: me.name, look: me.look }); },
     onClose: () => { if (joined) netMsg('📶 Mất kết nối – đang nối lại…'); },
     onError: (e) => {
-      if (e === 'nopin') { resetJoin('Không tìm thấy lớp với mã PIN này'); }
-      else if (e === 'timeout') { if (!joined) netMsg('Kết nối chậm… thử lại'); }
-      else if (!joined) resetJoin('Lỗi kết nối (' + e + '). Thử lại hoặc đổi mạng wifi/4G.');
+      if (e === 'nopin') resetJoin('Không tìm thấy lớp với mã PIN này. Kiểm tra lại mã trên bảng nhé.');
+      else if (e === 'blocked') resetJoin('Mạng này đang chặn kết nối 😢 Thử chuyển sang 4G hoặc wifi khác.');
+      else if (!joined) resetJoin('Lỗi kết nối (' + e + '). Thử lại nhé.');
     },
     onMessage,
-  });
+  }, b);
 }
 function resetJoin(msg) {
   if (net) { net.stop(); net = null; }
@@ -78,6 +79,7 @@ function resetJoin(msg) {
 /* ---------- tin nhắn từ máy giáo viên ---------- */
 function onMessage(m) {
   if (!m || typeof m !== 'object') return;
+  if (!joined && !['welcome', 'full', 'kick'].includes(m.t)) return;
   switch (m.t) {
     case 'welcome': {
       joined = true; netMsg(''); score = m.score; me.name = m.name; try { sessionStorage.setItem('lophoc-in', pin); } catch (e) {}
@@ -92,7 +94,7 @@ function onMessage(m) {
     case 'lobby': score = 0; waitScreen('Session mới sắp bắt đầu!', 'Chờ cô bắt đầu<span class="dots"></span>'); break;
     case 'q': showQuestion(m.q); break;
     case 'open': if (cur && cur.i === m.i) openQ(m.remaining); break;
-    case 'got': markPicked(m.c); break;
+    case 'got': markPicked(m.v); break;
     case 'closed': if (cur && cur.i === m.i) { lockQ(); $('#qHint').textContent = 'Hết giờ! Xem đáp án trên bảng 👀'; } break;
     case 'res': showResult(m); break;
     case 'end': showEnd(m); break;
@@ -107,50 +109,98 @@ function waitScreen(info, msg) {
   show('sWait');
 }
 
+/* ---------- câu hỏi: nhiều dạng ---------- */
+const CHOICE = ['mc', 'tf', 'error'];
 function showQuestion(q) {
-  cur = { i: q.i, picked: null, open: false };
+  cur = { i: q.i, type: q.type || 'mc', picked: null, open: false, time: q.time || 20, chunks: q.chunks || [], built: [] };
   clearInterval(timerT);
   $('#qNo').textContent = `Câu ${q.i + 1}/${q.total}`;
   $('#qScore').textContent = `⭐ ${score}`;
-  $('#qText').textContent = q.text;
-  $('#qHint').textContent = '🔊 Nghe cô đọc câu hỏi…';
+  const qt = $('#qText'); qt.className = 'qtext';
+  if (cur.type === 'error') qt.innerHTML = '<small>🔍 Tìm phần SAI</small><br>' + q.segs.map((s) => s.p == null ? esc(s.t) : `<u>${esc(s.t)}</u><sup>${LET[s.p]}</sup>`).join('');
+  else if (cur.type === 'tf') qt.innerHTML = '<small>⚖️ True or False?</small><br>' + esc(q.text);
+  else if (cur.type === 'listen') { qt.innerHTML = '🎧 Nghe cô đọc rồi gõ lại cả câu'; qt.classList.add('big'); }
+  else if (cur.type === 'order') { qt.innerHTML = '🧩 Chạm các từ theo đúng thứ tự'; qt.classList.add('big'); }
+  else qt.textContent = q.text;
+  $('#qHint').textContent = cur.type === 'order' ? 'Chuẩn bị…' : cur.type === 'listen' ? '🎧 Nghe kỹ nhé…' : '🔊 Nghe cô đọc câu hỏi…';
   $('#tfill').style.width = '100%';
   const o = $('#opts');
-  o.className = 'opts locked n' + q.options.length;
-  o.innerHTML = q.options.map((t, i) => `<button class="opt-${LET[i]}" data-i="${i}" disabled><span class="l">${LET[i]}</span><span>${esc(t)}</span></button>`).join('');
+  if (CHOICE.includes(cur.type)) {
+    o.className = 'opts locked n' + q.options.length + (cur.type === 'tf' ? ' tf' : '');
+    o.innerHTML = q.options.map((t, i) => `<button class="opt-${LET[i]}" data-i="${i}" disabled><span class="l">${LET[i]}</span><span>${esc(cur.type === 'tf' ? (i ? '✗ False' : '✓ True') : t)}</span></button>`).join('');
+  } else if (cur.type === 'order') {
+    o.className = 'opts order locked';
+    o.innerHTML = `<div id="built" class="built"><span class="ph">Câu của bạn sẽ hiện ở đây</span></div><div id="pool" class="pool">${cur.chunks.map((c, i) => `<button class="chip" data-c="${i}" disabled>${esc(c)}</button>`).join('')}</div>
+      <div class="orow"><button class="btn ghost" id="clr" disabled>↺ Làm lại</button><button class="btn go" id="send" disabled>Gửi ✔</button></div>`;
+  } else {
+    o.className = 'opts typing locked';
+    o.innerHTML = `<input id="ans" type="text" maxlength="160" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Gõ đáp án…" disabled>
+      <button class="btn go big" id="send" disabled>Gửi ✔</button>`;
+  }
   show('sQ');
 }
 function openQ(remaining) {
   if (!cur || cur.open) return;
   cur.open = true;
   const o = $('#opts');
-  if (cur.picked == null) { o.classList.remove('locked'); o.querySelectorAll('button').forEach((b) => (b.disabled = false)); $('#qHint').textContent = 'Chọn đáp án! Càng nhanh càng nhiều điểm ⚡'; }
-  const end = performance.now() + remaining * 1000;
+  if (cur.picked == null) {
+    o.classList.remove('locked');
+    o.querySelectorAll('button, input').forEach((b) => (b.disabled = false));
+    if (cur.type === 'order') $('#send').disabled = true;
+    $('#qHint').textContent = CHOICE.includes(cur.type) ? 'Chọn đáp án! Càng nhanh càng nhiều điểm ⚡' : cur.type === 'order' ? 'Xếp xong bấm Gửi ⚡' : 'Gõ xong bấm Gửi (hoặc Enter) ⚡';
+    if ($('#ans')) setTimeout(() => $('#ans').focus(), 50);
+  }
+  const total = cur.time * 1000, end = performance.now() + remaining * 1000;
   clearInterval(timerT);
   timerT = setInterval(() => {
     const left = Math.max(0, end - performance.now());
-    $('#tfill').style.width = (left / 200) + '%';
+    $('#tfill').style.width = (100 * left / total) + '%';
     if (left <= 0) { clearInterval(timerT); lockQ(); }
   }, 100);
 }
-$('#opts').onclick = (e) => {
-  const b = e.target.closest('button');
-  if (!b || !cur || !cur.open || cur.picked != null) return;
-  cur.picked = +b.dataset.i;
-  net.send({ t: 'ans', i: cur.i, c: cur.picked });
-  markPicked(cur.picked);
+function submit(payload) {
+  if (!cur || !cur.open || cur.picked != null) return;
+  net.send({ t: 'ans', i: cur.i, ...payload });
+  markPicked(payload.c ?? payload.v);
   if (navigator.vibrate) navigator.vibrate(30);
-};
-function markPicked(c) {
-  if (!cur) return;
-  cur.picked = c;
+}
+function renderBuilt() {
+  const b = $('#built');
+  b.innerHTML = cur.built.length ? cur.built.map((ci, k) => `<button class="chip on" data-k="${k}">${esc(cur.chunks[ci])}</button>`).join('') : '<span class="ph">Câu của bạn sẽ hiện ở đây</span>';
+  $('#pool').querySelectorAll('.chip').forEach((c) => c.classList.toggle('used', cur.built.includes(+c.dataset.c)));
+  $('#send').disabled = cur.built.length !== cur.chunks.length;
+}
+$('#opts').addEventListener('click', (e) => {
+  if (!cur || !cur.open || cur.picked != null) return;
+  const b = e.target.closest('button'); if (!b) return;
+  if (CHOICE.includes(cur.type)) return submit({ c: +b.dataset.i });
+  if (cur.type === 'order') {
+    if (b.dataset.c != null && !b.classList.contains('used')) { cur.built.push(+b.dataset.c); renderBuilt(); }
+    else if (b.dataset.k != null) { cur.built.splice(+b.dataset.k, 1); renderBuilt(); }
+    else if (b.id === 'clr') { cur.built = []; renderBuilt(); }
+    else if (b.id === 'send' && cur.built.length === cur.chunks.length) submit({ v: cur.built.map((i) => cur.chunks[i]).join(' ') });
+    return;
+  }
+  if (b.id === 'send') { const v = $('#ans').value.trim(); if (v) submit({ v }); else $('#ans').focus(); }
+});
+$('#opts').addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.id === 'ans') { e.preventDefault(); $('#send').click(); } });
+
+function markPicked(v) {
+  if (!cur || v == null) return;
+  cur.picked = v;
   const o = $('#opts'); o.classList.add('locked');
-  o.querySelectorAll('button').forEach((b, i) => { b.disabled = i !== c; b.classList.toggle('picked', i === c); });
-  $('#qHint').textContent = `Đã chốt ${LET[c]} ✔ Chờ các bạn khác…`;
+  if (CHOICE.includes(cur.type)) {
+    o.querySelectorAll('button').forEach((b, i) => { b.disabled = i !== v; b.classList.toggle('picked', i === v); });
+    $('#qHint').textContent = `Đã chốt ${LET[v]} ✔ Chờ các bạn khác…`;
+  } else {
+    o.querySelectorAll('button, input').forEach((b) => (b.disabled = true));
+    if ($('#ans')) $('#ans').value = v;
+    $('#qHint').textContent = `Đã gửi ✔ "${String(v).slice(0, 40)}" – chờ các bạn khác…`;
+  }
 }
 function lockQ() {
   const o = $('#opts'); o.classList.add('locked');
-  o.querySelectorAll('button').forEach((b) => { if (!b.classList.contains('picked')) b.disabled = true; });
+  o.querySelectorAll('button, input').forEach((b) => { if (!b.classList.contains('picked')) b.disabled = true; });
   clearInterval(timerT); $('#tfill').style.width = '0%';
 }
 
@@ -158,14 +208,16 @@ function showResult(m) {
   clearInterval(timerT);
   score = m.score;
   const s = $('#sRes');
-  const kind = m.choice == null ? 'none' : m.gain > 0 ? 'ok' : 'no';
+  const kind = !m.answered ? 'none' : m.gain > 0 ? 'ok' : 'no';
   s.className = 'screen center res ' + kind;
   $('#rIcon').textContent = kind === 'ok' ? '🎉' : kind === 'no' ? '😵' : '⏰';
   $('#rTitle').textContent = kind === 'ok' ? 'Chính xác!' : kind === 'no' ? 'Chưa đúng rồi' : 'Bạn chưa trả lời';
-  $('#rGain').textContent = kind === 'ok' ? `+${m.gain} điểm` : `Đáp án: ${LET[m.correct]}`;
+  $('#rGain').textContent = kind === 'ok' ? `+${m.gain} điểm` : 'Đáp án đúng:';
   const d = (m.prev || m.rank) - m.rank;
   const mv = d > 0 ? ` <b style="color:#b8ffcf">▲${d}</b>` : d < 0 ? ` <b style="color:#ffd0d0">▼${-d}</b>` : '';
-  $('#rInfo').innerHTML = `Tổng: <b>${m.score}</b> điểm<br>Hạng <b>${m.rank}</b>/${m.n}${mv}<br><small>Nhìn lên bảng xem chỗ ngồi mới nhé!</small>`;
+  const when = m.sec != null ? `⏱ Bạn trả lời lúc <b>${m.sec}s</b>${m.pos ? ` · nhanh thứ <b>${m.pos}</b> trong số bạn đúng` : ''}<br>` : '';
+  $('#rInfo').innerHTML = (kind === 'ok' ? '' : `<div class="rans">${esc(m.ans)}</div>`) + when +
+    `Tổng: <b>${m.score}</b> điểm<br>Hạng <b>${m.rank}</b>/${m.n}${mv}<br><small>Nhìn lên bảng xem chỗ ngồi mới nhé!</small>`;
   show('sRes');
   if (navigator.vibrate) navigator.vibrate(kind === 'ok' ? [40, 60, 40] : 120);
 }

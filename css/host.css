@@ -149,3 +149,43 @@ body.playing { background: #1d1a22; overflow: hidden; }
 .corner button { width: 40px; height: 40px; border-radius: 10px; background: #fff; font-size: 20px; }
 
 .toast { position: fixed; left: 50%; top: 18px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 20px; border-radius: 12px; font-weight: 700; z-index: 2000; }
+
+/* nhiều dạng bài */
+.tpls { align-items: center; font-weight: 700; font-size: 15px; }
+.btn.tpl { background: #fff4d6; color: var(--ink); box-shadow: 0 3px 0 #e6cf97; }
+.help table { border-collapse: collapse; margin: 6px 0; width: 100%; }
+.help td { padding: 3px 6px; border-bottom: 1px dashed #c9d8ef; vertical-align: top; }
+.help td:first-child { white-space: nowrap; font-weight: 700; }
+.qtypes { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 14px; margin-top: 6px; }
+.b-opts.n2 { grid-template-columns: 1fr 1fr; }
+.board.t-tf .b-opt { height: 104px; justify-content: center; } .board.t-tf .b-opt .txt { flex: none; font-size: 40px !important; } .board.t-tf .b-opt .let { display: none; }
+.board.t-tf .b-opt .cnt { position: absolute; right: 14px; }
+.board.t-tf .b-q, .board.t-fill .b-q, .board.t-order .b-q, .board.t-listen .b-q { height: 128px; }
+.part { display: inline-block; position: relative; margin: 0 2px; }
+.part u { text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.part sub { position: absolute; left: 50%; bottom: -22px; transform: translateX(-50%); font-family: 'Baloo 2'; font-weight: 800; font-size: 18px; color: #ffe27a; }
+.part.bad { color: #ff8a8a; } .part.bad u { text-decoration-color: #ff4d4d; }
+.b-q.chips { flex-wrap: wrap; gap: 10px; align-content: center; }
+.chip { font-family: 'Baloo 2'; font-weight: 700; font-size: 28px; background: #fff8ec; color: var(--ink); border-radius: 12px; padding: 2px 14px; box-shadow: 0 4px 0 rgba(0,0,0,.3); }
+.b-q.listen { font-size: 40px; }
+.b-type { text-align: center; font-family: 'Baloo 2'; font-weight: 700; font-size: 26px; background: rgba(255,255,255,.1); border-radius: 12px; padding: 14px; margin-top: 4px; }
+.b-ans { text-align: center; font-family: 'Baloo 2'; }
+.b-ans .ok { display: inline-block; background: var(--green); color: #fff; font-weight: 800; font-size: 30px; border-radius: 14px; padding: 4px 22px; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.b-ans .ok b { font-size: 20px; background: rgba(0,0,0,.2); border-radius: 99px; padding: 0 10px; margin-left: 8px; vertical-align: 3px; }
+.b-ans .wrongs { margin-top: 10px; font-size: 20px; display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; align-items: center; }
+.b-ans .wa { background: rgba(229,72,77,.85); border-radius: 10px; padding: 0 10px; font-weight: 700; }
+.board.t-tf .b-q { height: 108px !important; }
+.b-q .sent { display: block; white-space: pre-wrap; }
+
+/* bảng tốc độ */
+.sp-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(8, 23px); gap: 2px 14px; margin-top: 4px; font-family: "Baloo 2"; font-size: 16px; }
+.sp-grid.c1 { grid-template-rows: repeat(8, 23px); width: 420px; margin: 6px auto 0; }
+.sp { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.08); border-radius: 7px; padding: 0 8px; white-space: nowrap; }
+.sp .n { width: 22px; opacity: .6; font-weight: 700; }
+.sp .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
+.sp .tm { font-weight: 700; color: #ffe27a; }
+.sp .g { min-width: 34px; text-align: right; font-weight: 800; }
+.sp.ok .g { color: #7dffb0; } .sp.no { opacity: .75; } .sp.no .g { color: #ff8a8a; }
+.sp-none { margin-top: 6px; font-family: 'Baloo 2'; font-size: 15px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-empty { font-size: 32px; text-align: center; padding-top: 50px; }
+.board.speed .b-head span:last-child { color: #7dffb0; font-family: 'Baloo 2'; font-weight: 700; }
