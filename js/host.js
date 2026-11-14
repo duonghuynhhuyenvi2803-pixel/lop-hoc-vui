@@ -25,7 +25,7 @@ const st = {
   players: new Map(),     // cid -> player
   keys: new Map(),        // connKey -> cid
   bank: [], bankPos: 0, session: [], qi: -1, sessionNo: 0,
-  t0: 0, timerInt: null, autoT: null, settings: {}, voices: [], joinCount: 0,
+  t0: 0, timerInt: null, autoT: null, settings: {}, voices: [], viVoices: [], joinCount: 0, standOrder: [], leaderCid: null,
 };
 
 /* ================= SETUP ================= */
@@ -38,6 +38,9 @@ function loadSetup() {
   $('#shuffle').checked = !!saved.shuffle;
   $('#tts').checked = saved.tts !== false;
   $('#readOpts').checked = !!saved.readOpts;
+  $('#commentary').checked = saved.commentary !== false;
+  $('#punish').checked = saved.punish !== false;
+  st.savedViVoice = saved.viVoice || '';
   $('#waitRead').checked = saved.waitRead !== false;
   $('#autoNext').checked = !!saved.autoNext;
   $('#qtext').value = saved.qtext || SAMPLE;
@@ -50,6 +53,7 @@ function readSetup() {
     className: $('#className').value.trim(), nq: +$('#nq').value, shuffle: $('#shuffle').checked,
     tts: $('#tts').checked, readOpts: $('#readOpts').checked, waitRead: $('#waitRead').checked,
     autoNext: $('#autoNext').checked, voice: $('#voice').value, qtext: $('#qtext').value,
+    commentary: $('#commentary').checked, punish: $('#punish').checked, viVoice: $('#viVoice').value,
   };
   try { localStorage.setItem(LS, JSON.stringify(s)); } catch (e) {}
   return s;
@@ -71,6 +75,12 @@ function loadVoices() {
   vs.sort((a, b) => pref(a) - pref(b));
   $('#voice').innerHTML = vs.map((v) => `<option value="${esc(v.name)}">${esc(v.name)} (${v.lang})</option>`).join('') || '<option value="">Giọng mặc định</option>';
   if (st.savedVoice && vs.some((v) => v.name === st.savedVoice)) $('#voice').value = st.savedVoice;
+  const vi = speechSynthesis.getVoices().filter((v) => /^vi/i.test(v.lang));
+  vi.sort((a, b) => (/(natural|online|google)/i.test(a.name) ? 0 : 1) - (/(natural|online|google)/i.test(b.name) ? 0 : 1));
+  st.viVoices = vi;
+  $('#viVoice').innerHTML = vi.map((v) => `<option value="${esc(v.name)}">${esc(v.name)}</option>`).join('') || '<option value="">(không có giọng tiếng Việt)</option>';
+  if (st.savedViVoice && vi.some((v) => v.name === st.savedViVoice)) $('#viVoice').value = st.savedViVoice;
+  $('#viWarn').hidden = vi.length > 0;
 }
 $('#nq').oninput = () => ($('#nqLabel').textContent = $('#nq').value);
 $('#qtext').oninput = validate;
@@ -138,8 +148,17 @@ function buildRoom() {
   $('#timerArc').style.strokeDashoffset = 0;
 }
 
+// Khu bàn ghế được thu nhỏ (scale RS, dịch xuống RT) để chừa chỗ đứng trước bảng
+const RS = 0.85, RT = 138;
+const toRoomX = (sx) => 800 + (sx - 800) / RS, toRoomY = (sy) => (sy - RT) / RS;
+function standPos(p) {
+  const i = st.standOrder.indexOf(p.cid), n = st.standOrder.length;
+  const left = 262, right = 1338, gap = Math.min(86, (right - left) / Math.max(1, n));
+  const sx = (left + right) / 2 + (i - (n - 1) / 2) * gap;
+  return { x: toRoomX(sx), y: toRoomY(310), r: -1 };
+}
 function placePlayer(p, animate) {
-  const pos = seatPos(p.seat);
+  const pos = p.standing ? standPos(p) : seatPos(p.seat);
   if (!p.el) {
     p.el = document.createElement('div'); p.el.className = 'stu enter';
     p.el.innerHTML = `<div class="inner"></div><div class="mark"></div>`;
@@ -151,11 +170,12 @@ function placePlayer(p, animate) {
     animate = false;
   }
   if (!animate) { p.el.style.transition = p.lb.style.transition = 'none'; }
-  const sc = 0.86 + 0.035 * pos.r;
+  const sc = p.standing ? 1 : 0.86 + 0.035 * pos.r;
   p.el.style.left = pos.x - 55 + 'px'; p.el.style.top = pos.y - 10 + 'px';
-  p.el.style.zIndex = 10 + 2 * pos.r;
+  p.el.style.zIndex = p.standing ? 300 : 10 + 2 * pos.r;
+  p.el.classList.toggle('standing', !!p.standing); p.lb.classList.toggle('standing', !!p.standing);
   p.el.querySelector('.inner').style.transform = `scale(${sc})`;
-  p.lb.style.left = pos.x - 75 + 'px'; p.lb.style.top = pos.y + 80 + 'px';
+  p.lb.style.left = pos.x - 75 + 'px'; p.lb.style.top = (p.standing ? pos.y - 34 : pos.y + 80) + 'px';
   p.lb.style.zIndex = 200;
   if (!animate) { void p.el.offsetWidth; p.el.style.transition = p.lb.style.transition = ''; }
   p.lb.querySelector('.nm').textContent = p.name;
@@ -218,13 +238,14 @@ function handleJoin(key, m) {
     if (st.phase === 'lobby') setTimeout(() => p.mood === 'happy' && setMood(p, 'normal'), 1500);
     S.pop();
     say(`Chào <b>${esc(p.name)}</b>!`);
+    if (st.phase === 'lobby' && !p.bot) commentate(`Chào mừng ${names([p])} vào lớp!`, { interrupt: false });
   }
   send(p, welcomeMsg(p));
   updateStats();
 }
 function welcomeMsg(p) {
   const q = st.session[st.qi];
-  const base = { t: 'welcome', name: p.name, seat: PRESTIGE.indexOf(p.seat) + 1, score: p.score, rank: p.rank, n: st.players.size, phase: st.phase, cls: st.settings.className };
+  const base = { t: 'welcome', name: p.name, seat: PRESTIGE.indexOf(p.seat) + 1, score: p.score, rank: p.rank, n: st.players.size, phase: st.phase, cls: st.settings.className, standing: !!p.standing };
   if (q && (st.phase === 'reading' || st.phase === 'question')) {
     base.q = qMsg();
     if (st.phase === 'question') base.remaining = Math.max(0, st.qtime - (performance.now() - st.t0) / 1000);
@@ -238,6 +259,7 @@ function kick(p) {
   send(p, { t: 'kick' });
   if (p.key) { st.keys.delete(p.key); st.net.drop(p.key); }
   st.players.delete(p.cid); p.el.remove(); p.lb.remove();
+  if (p.standing) { st.standOrder = st.standOrder.filter((c) => c !== p.cid); st.players.forEach((x) => x.standing && placePlayer(x, true)); }
   updateStats();
 }
 
@@ -325,7 +347,8 @@ function startSession() {
   else { pool = pool.slice(st.bankPos).concat(pool.slice(0, st.bankPos)); st.bankPos = (st.bankPos + n) % st.bank.length; }
   st.session = pool.slice(0, n);
   st.qi = -1;
-  st.players.forEach((p) => { p.score = 0; });
+  st.players.forEach((p) => { p.score = 0; p.standing = false; p.wrongStreak = 0; });
+  st.standOrder = []; st.leaderCid = null;
   rearrange(false);
   next();
 }
@@ -342,6 +365,12 @@ function next() {
   timerSet(st.qtime, st.qtime); $('#timer').classList.remove('idle', 'urgent');
   renderControls();
   broadcast({ t: 'q', q: qMsg() });
+  const pre = st.qi === 0 ? pick(['Bắt đầu nào! Câu hỏi đầu tiên.', 'Cả lớp sẵn sàng chưa? Vào câu đầu tiên nhé!'])
+    : st.qi === st.session.length - 1 ? 'Câu hỏi cuối cùng! Cố lên nào!' : '';
+  const qi0 = st.qi;
+  (pre ? commentate(pre) : Promise.resolve()).then(() => { if (st.qi === qi0 && st.phase === 'reading') readQuestion(q); });
+}
+function readQuestion(q) {
   const text = speakText(q, st.settings.readOpts);
   const mustRead = q.type === 'listen';             // nghe chép luôn đọc và đợi đọc xong
   const doRead = text && (st.settings.tts || mustRead);
@@ -453,6 +482,21 @@ function closeQuestion() {
     if (ok) { g.textContent = '+' + p.gain; g.classList.add('show'); }
   });
   info.wrong = [...wrongMap.values()].sort((a, b) => b[1] - a[1]);
+  // Phạt đứng bảng: sai/bỏ trống 2 câu liên tiếp → lên bảng; đúng → về chỗ
+  const called = [], back = [];
+  st.players.forEach((p) => {
+    p.called = p.back = false;
+    if (!(p.key || p.bot)) return;            // mất kết nối thì không tính
+    if (p.gain > 0) {
+      p.wrongStreak = 0;
+      if (p.standing) { p.standing = false; p.back = true; back.push(p); }
+    } else {
+      p.wrongStreak = (p.wrongStreak || 0) + 1;
+      if (st.settings.punish && p.wrongStreak >= 2 && !p.standing) { p.standing = true; p.called = true; called.push(p); st.standOrder.push(p.cid); }
+    }
+  });
+  st.standOrder = st.standOrder.filter((cid) => st.players.get(cid) && st.players.get(cid).standing);
+  info.called = called; info.back = back;
   info.speed = [...st.players.values()].filter((p) => p.answer).sort((a, b) => a.answer.ms - b.answer.ms)
     .map((p) => ({ name: p.name, s: p.answer.ms / 1000, ok: p.answer.ok, gain: p.gain }));
   info.none = [...st.players.values()].filter((p) => !p.answer).map((p) => p.name);
@@ -468,7 +512,8 @@ function closeQuestion() {
     if (st.qi !== qi || st.phase !== 'reveal') return;
     rearrange(true);
     if (st.phase === 'reveal' && st.qi === qi) showSpeed(true);
-    st.players.forEach((p) => send(p, { t: 'res', i: qi, ans: label, answered: !!p.answer, sec: p.answer ? +(p.answer.ms / 1000).toFixed(1) : null, pos: p.answer && p.answer.pos ? p.answer.pos : null, gain: p.gain, score: p.score, rank: p.rank, prev: p.prevRank, n: N }));
+    commentate(revealLines(info, q, N));
+    st.players.forEach((p) => send(p, { t: 'res', i: qi, ans: label, answered: !!p.answer, sec: p.answer ? +(p.answer.ms / 1000).toFixed(1) : null, pos: p.answer && p.answer.pos ? p.answer.pos : null, gain: p.gain, score: p.score, rank: p.rank, prev: p.prevRank, n: N, standing: !!p.standing, called: !!p.called, back: !!p.back }));
     if (st.settings.autoNext) st.autoT = setTimeout(() => { if (st.phase === 'reveal' && st.qi === qi) next(); }, 8000);
   }, 2200);
 }
@@ -536,6 +581,61 @@ function speak(text, force) {
   });
 }
 
+/* ================= LỒNG TIẾNG BÌNH LUẬN ================= */
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const names = (list) => {
+  const n = list.map((p) => p.name.replace(/\s*🤖.*$/, '').trim());
+  if (n.length <= 3) return n.length > 1 ? n.slice(0, -1).join(', ') + ' và ' + n[n.length - 1] : n[0];
+  return n.slice(0, 2).join(', ') + ` và ${n.length - 2} bạn nữa`;
+};
+const secVi = (s) => s.toFixed(1).replace('.', ',');
+function revealLines(info, q, N) {
+  // mỗi dòng có độ ưu tiên; lấy 3 dòng quan trọng nhất rồi đọc theo thứ tự tự nhiên
+  const L = [];
+  const add = (order, prio, text) => L.push({ order, prio, text });
+  const list = [...st.players.values()].sort((a, b) => a.rank - b.rank);
+  const leader = list[0];
+  const fastest = info.speed.find((r) => r.ok);
+  if (info.right === 0) add(1, 3, pick(['Ôi, câu này khó quá, chưa bạn nào trả lời đúng!', 'Cả lớp trượt hết câu này rồi!']));
+  else if (info.right === N && N > 1) add(1, 3, pick(['Tuyệt vời, cả lớp đều trả lời đúng!', 'Một trăm phần trăm chính xác! Cả lớp quá giỏi!']));
+  else if (fastest) add(1, 1, pick([`${names([{ name: fastest.name }])} nhanh nhất, chỉ ${secVi(fastest.s)} giây!`, `Nhanh như chớp! ${names([{ name: fastest.name }])} trả lời đúng sau ${secVi(fastest.s)} giây!`]));
+  if (leader && leader.score > 0) {
+    if (leader.cid !== st.leaderCid) add(2, 4, pick([`${names([leader])} vượt lên dẫn đầu với ${leader.score} điểm!`, `Đổi ngôi rồi! ${names([leader])} đang đứng đầu lớp!`]));
+    else if (st.qi % 3 === 2) add(2, 0, `${names([leader])} vẫn giữ vững vị trí số một.`);
+    st.leaderCid = leader.cid;
+  }
+  if (info.back.length) add(3, 5, pick([`Giỏi lắm! ${names(info.back)} trả lời đúng rồi, mời về chỗ!`, `${names(info.back)} đã chuộc lỗi thành công, về chỗ ngồi thôi!`]));
+  if (info.called.length) add(4, 5, pick([`Ối, ${names(info.called)} sai hai câu liên tiếp rồi. Mời lên bảng đứng nhé!`, `${names(info.called)} ơi, lên bảng đứng một chút nào!`]));
+  if (st.qi === st.session.length - 2) add(5, 2, 'Chỉ còn một câu cuối cùng!');
+  return L.sort((a, b) => b.prio - a.prio).slice(0, 3).sort((a, b) => a.order - b.order).map((x) => x.text);
+}
+
+let capT = null;
+function caption(text) {
+  const c = $('#caption'); if (!c) return;
+  c.textContent = '🎙️ ' + text; c.hidden = false;
+  clearTimeout(capT); capT = setTimeout(() => (c.hidden = true), 2600 + text.length * 70);
+}
+// Đọc lời bình (tiếng Việt). Trả về Promise khi đọc xong.
+function commentate(lines, { interrupt = true } = {}) {
+  if (!lines || !lines.length || !st.settings.commentary) return Promise.resolve();
+  const text = Array.isArray(lines) ? lines.join(' ') : lines;
+  caption(text);
+  const v = st.viVoices.find((x) => x.name === st.settings.viVoice) || st.viVoices[0];
+  if (!v || !('speechSynthesis' in window)) return new Promise((r) => setTimeout(r, 900));
+  if (!interrupt && speechSynthesis.speaking) return Promise.resolve();
+  return new Promise((res) => {
+    let done = false; const fin = () => { if (!done) { done = true; res(); } };
+    try {
+      if (interrupt) speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.voice = v; u.lang = v.lang; u.rate = 1.08; u.pitch = 1.05; u.onend = fin; u.onerror = fin;
+      speechSynthesis.speak(u);
+    } catch (e) { fin(); }
+    setTimeout(fin, 2500 + text.length * 90);
+  });
+}
+
 /* ================= VINH DANH ================= */
 function showPodium() {
   st.phase = 'podium'; st.sessionNo++;
@@ -559,14 +659,15 @@ function showPodium() {
   list.forEach((p) => send(p, { t: 'end', rank: p.rank, score: p.score, n: list.length, top: top.map((t) => ({ name: t.name, score: t.score, look: t.look })) }));
   const on = (id) => { const el = $(id); if (el) el.classList.add('on'); };
   S.drumroll(1.5);
-  setTimeout(() => { on('#pd3'); on('#lt3'); S.cymbal(); }, 1600);
+  commentate('Và bây giờ là phần vinh danh!');
+  setTimeout(() => { on('#pd3'); on('#lt3'); S.cymbal(); if (top[2]) commentate(`Hạng ba: ${names([top[2]])}!`); }, 1600);
   setTimeout(() => { S.drumroll(1.5); }, 2600);
-  setTimeout(() => { on('#pd2'); on('#lt2'); S.cymbal(); }, 4200);
+  setTimeout(() => { on('#pd2'); on('#lt2'); S.cymbal(); if (top[1]) commentate(`Hạng nhì: ${names([top[1]])}!`); }, 4200);
   setTimeout(() => { S.drumroll(2); }, 5200);
-  setTimeout(() => { on('#pd1'); on('#lt1'); S.fanfare(); confetti(); say(`🎉 Chúc mừng <b>${esc(top[0] ? top[0].name : '')}</b>!`); }, 7300);
+  setTimeout(() => { on('#pd1'); on('#lt1'); S.fanfare(); confetti(); if (top[0]) commentate(`Và quán quân hôm nay là ${names([top[0]])}, với ${top[0].score} điểm! Xin chúc mừng!`); say(`🎉 Chúc mừng <b>${esc(top[0] ? top[0].name : '')}</b>!`); }, 7300);
   setTimeout(() => { on('#pbtns'); on('#plist'); }, 8500);
   pd.onclick = ((e) => {
-    if (e.target.id === 'pNew') { pd.hidden = true; st.qi = -1; st.players.forEach((p) => { p.score = 0; setMark(p, null); setMood(p, 'normal'); }); rearrange(false); toLobby(); }
+    if (e.target.id === 'pNew') { pd.hidden = true; st.qi = -1; st.players.forEach((p) => { p.score = 0; p.standing = false; p.wrongStreak = 0; setMark(p, null); setMood(p, 'normal'); }); st.standOrder = []; rearrange(false); toLobby(); }
     if (e.target.id === 'pCsv') downloadCSV(list);
     if (e.target.id === 'pBack') { pd.hidden = true; }
   });

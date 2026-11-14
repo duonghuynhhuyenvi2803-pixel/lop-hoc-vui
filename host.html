@@ -29,9 +29,14 @@
       <label class="chk"><input id="waitRead" type="checkbox" checked> Đọc xong mới bắt đầu tính 20 giây</label>
       <label>Giọng đọc <select id="voice"></select></label>
       <label class="chk"><input id="autoNext" type="checkbox"> Tự chuyển câu sau 8 giây</label>
+      <label class="chk"><input id="commentary" type="checkbox" checked> 🎙️ Lồng tiếng bình luận (tiếng Việt)</label>
+      <label>Giọng bình luận <select id="viVoice"></select></label>
+      <div id="viWarn" class="viwarn" hidden>Máy này chưa có giọng tiếng Việt nên chỉ hiện chữ phụ đề. Mở trang bằng <b>Microsoft Edge</b> để có giọng HoaiMy/NamMinh đọc rất tự nhiên.</div>
+      <label class="chk"><input id="punish" type="checkbox" checked> 🙋 Sai 2 câu liên tiếp phải lên bảng đứng</label>
       <div class="rules">
         <b>Luật điểm:</b> mỗi câu 20 giây. Bạn đúng <b>nhanh nhất</b> được điểm bằng <b>sĩ số lớp</b> (lớp 25 bạn → 25 điểm), bạn đúng thứ nhì 24, thứ ba 23… Sai / không trả lời = 0.
         Sau mỗi câu cả lớp đổi chỗ: hạng 1 ngồi gần bàn giáo viên nhất, rồi lần lượt từ trái qua phải, từ trên xuống dưới.
+        Sai (hoặc bỏ trống) <b>2 câu liên tiếp</b> → lên bảng đứng, vẫn được trả lời tiếp; trả lời đúng là được về chỗ.
       </div>
     </div>
     <div class="card qcard">
@@ -92,9 +97,13 @@
       </div>
     </div>
     <div class="floor"></div>
-    <div id="desks"></div>
-    <div id="students"></div>
-    <div id="labels"></div>
+    <div class="room" id="room">
+      <div class="front-spot" id="frontSpot">🙋 Khu đứng bảng</div>
+      <div id="desks"></div>
+      <div id="students"></div>
+      <div id="labels"></div>
+    </div>
+    <div id="caption" class="caption" hidden></div>
     <div id="podium" class="podium" hidden></div>
     <canvas id="confetti" width="1600" height="900"></canvas>
   </div>

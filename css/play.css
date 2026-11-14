@@ -71,3 +71,8 @@ label input { display: block; width: 100%; margin-top: 4px; font-size: 22px; fon
 .orow { display: flex; gap: 10px; } .orow .btn { flex: 1; font-size: 20px; }
 .opts.locked .chip, .opts.locked input { opacity: .6; }
 .rans { font-size: 24px; font-weight: 800; background: #fff; color: var(--ink); border-radius: 14px; padding: 6px 16px; margin-bottom: 12px; }
+
+.standbar { background: #ffd0d0; color: #8b1a1a; font-weight: 800; text-align: center; border-radius: 12px; padding: 6px 10px; animation: pulse .8s infinite alternate; }
+@keyframes pulse { to { transform: scale(1.03); } }
+.rstand { background: #fff3c4; color: var(--ink); font-weight: 800; border-radius: 14px; padding: 8px 14px; margin-bottom: 12px; font-size: 18px; }
+.rstand.back { background: #d4ffe3; }

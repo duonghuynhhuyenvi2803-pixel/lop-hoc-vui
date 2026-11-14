@@ -6,6 +6,8 @@ Game đố vui cả lớp: màn hình giáo viên chiếu lên bảng (lớp h�
 - Vào lớp trước ngồi trước. Sau **mỗi câu**, cả lớp đổi chỗ theo điểm: **hạng 1 ngồi gần bàn giáo viên nhất**, rồi lần lượt trái → phải, trên → dưới.
 - Câu hỏi được **đọc to** (giọng tiếng Anh của trình duyệt), có **20 giây** để trả lời.
 - Điểm: bạn đúng **nhanh nhất** = **sĩ số lớp** (lớp 25 bạn → 25 điểm), thứ nhì 24, thứ ba 23… Sai / không trả lời = 0.
+- **Lồng tiếng bình luận** tiếng Việt (ai nhanh nhất, ai dẫn đầu, ai bị gọi lên bảng, lễ vinh danh) + phụ đề. Giọng hay nhất khi mở bằng Microsoft Edge.
+- Sai (hoặc bỏ trống) **2 câu liên tiếp** → lên bảng đứng, vẫn trả lời tiếp; đúng là về chỗ.
 - Sau mỗi câu có **bảng tốc độ**: ai trả lời lúc mấy giây, đúng/sai, được bao nhiêu điểm.
 - 6 dạng bài: trắc nghiệm, đúng/sai, điền từ, sắp xếp câu, tìm lỗi sai, nghe & chép.
 - Mỗi session **15–20 câu**, kết thúc bằng lễ **vinh danh top 3** (bục podium, nhạc, pháo giấy) + tải bảng điểm CSV.

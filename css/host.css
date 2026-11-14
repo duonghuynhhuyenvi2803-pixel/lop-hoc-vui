@@ -178,8 +178,8 @@ body.playing { background: #1d1a22; overflow: hidden; }
 .b-q .sent { display: block; white-space: pre-wrap; }
 
 /* bảng tốc độ */
-.sp-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(8, 23px); gap: 2px 14px; margin-top: 4px; font-family: "Baloo 2"; font-size: 16px; }
-.sp-grid.c1 { grid-template-rows: repeat(8, 23px); width: 420px; margin: 6px auto 0; }
+.sp-grid { display: grid; grid-auto-flow: column; grid-template-rows: repeat(8, 21px); gap: 2px 14px; margin-top: 3px; font-family: "Baloo 2"; font-size: 15px; }
+.sp-grid.c1 { grid-template-rows: repeat(8, 21px); width: 420px; margin: 6px auto 0; }
 .sp { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,.08); border-radius: 7px; padding: 0 8px; white-space: nowrap; }
 .sp .n { width: 22px; opacity: .6; font-weight: 700; }
 .sp .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; font-weight: 700; }
@@ -189,3 +189,19 @@ body.playing { background: #1d1a22; overflow: hidden; }
 .sp-none { margin-top: 6px; font-family: 'Baloo 2'; font-size: 15px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sp-empty { font-size: 32px; text-align: center; padding-top: 50px; }
 .board.speed .b-head span:last-child { color: #7dffb0; font-family: 'Baloo 2'; font-weight: 700; }
+
+/* khu bàn ghế thu nhỏ + khu đứng bảng */
+.room { position: absolute; left: 0; top: 0; width: 1600px; height: 900px; transform-origin: 800px 0; transform: translateY(138px) scale(.85); pointer-events: none; }
+.room .stu { pointer-events: auto; }
+.front-spot { position: absolute; left: 290px; top: 205px; width: 1020px; height: 18px; display: none; }
+.stu.standing .ava { filter: drop-shadow(0 3px 0 rgba(0,0,0,.2)); }
+.stu.standing .inner::after { content: '😳'; position: absolute; right: -8px; top: 30px; font-size: 22px; }
+.stu.standing .mark, .lbl.standing .rk, .lbl.standing .mv { display: none !important; }
+.stu.standing .inner { position: relative; animation: sway 1.6s ease-in-out infinite alternate; }
+@keyframes sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+.stu.standing.walking .inner { animation: bob .3s infinite alternate; }
+.lbl.standing .nm { background: #ffd0d0; }
+.lbl.standing .gain { top: 0; }
+.caption { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); max-width: 1100px; background: rgba(29,26,34,.88); color: #fff; font-size: 26px; font-weight: 700; padding: 8px 26px; border-radius: 16px; z-index: 450; text-align: center; box-shadow: 0 6px 0 rgba(0,0,0,.25); animation: capin .3s ease-out; }
+@keyframes capin { from { opacity: 0; transform: translate(-50%, 16px); } }
+.viwarn { background: #ffe9d6; border-radius: 10px; padding: 8px 10px; font-size: 14px; margin: -2px 0 8px; }

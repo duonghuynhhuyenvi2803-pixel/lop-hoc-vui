@@ -13,6 +13,7 @@ me.look = me.look ? sanitizeLook(me.look) : randomLook();
 const save = () => { try { localStorage.setItem(LS, JSON.stringify(me)); } catch (e) {} };
 
 const url = new URLSearchParams(location.search);
+let standing = false;
 let net = null, pin = '', score = 0, cur = null, timerT = null, joined = false;
 
 /* ---------- màn hình ---------- */
@@ -82,7 +83,7 @@ function onMessage(m) {
   if (!joined && !['welcome', 'full', 'kick'].includes(m.t)) return;
   switch (m.t) {
     case 'welcome': {
-      joined = true; netMsg(''); score = m.score; me.name = m.name; try { sessionStorage.setItem('lophoc-in', pin); } catch (e) {}
+      joined = true; netMsg(''); score = m.score; me.name = m.name; standing = !!m.standing; try { sessionStorage.setItem('lophoc-in', pin); } catch (e) {}
       if (m.q) { showQuestion(m.q); if (m.remaining != null) openQ(m.remaining); if (m.answered != null) markPicked(m.answered); }
       else waitScreen(m.phase === 'lobby' || m.phase === 'setup'
         ? `Bạn ngồi ghế số <b>${m.seat}</b>`
@@ -91,7 +92,7 @@ function onMessage(m) {
     }
     case 'full': resetJoin('Lớp đã đủ 40 bạn rồi 😢'); break;
     case 'kick': resetJoin('Bạn đã được mời ra khỏi lớp.'); break;
-    case 'lobby': score = 0; waitScreen('Session mới sắp bắt đầu!', 'Chờ cô bắt đầu<span class="dots"></span>'); break;
+    case 'lobby': score = 0; standing = false; waitScreen('Session mới sắp bắt đầu!', 'Chờ cô bắt đầu<span class="dots"></span>'); break;
     case 'q': showQuestion(m.q); break;
     case 'open': if (cur && cur.i === m.i) openQ(m.remaining); break;
     case 'got': markPicked(m.v); break;
@@ -124,6 +125,7 @@ function showQuestion(q) {
   else qt.textContent = q.text;
   $('#qHint').textContent = cur.type === 'order' ? 'Chuẩn bị…' : cur.type === 'listen' ? '🎧 Nghe kỹ nhé…' : '🔊 Nghe cô đọc câu hỏi…';
   $('#tfill').style.width = '100%';
+  $('#standBar').hidden = !standing;
   const o = $('#opts');
   if (CHOICE.includes(cur.type)) {
     o.className = 'opts locked n' + q.options.length + (cur.type === 'tf' ? ' tf' : '');
@@ -206,7 +208,7 @@ function lockQ() {
 
 function showResult(m) {
   clearInterval(timerT);
-  score = m.score;
+  score = m.score; standing = !!m.standing;
   const s = $('#sRes');
   const kind = !m.answered ? 'none' : m.gain > 0 ? 'ok' : 'no';
   s.className = 'screen center res ' + kind;
@@ -216,7 +218,10 @@ function showResult(m) {
   const d = (m.prev || m.rank) - m.rank;
   const mv = d > 0 ? ` <b style="color:#b8ffcf">▲${d}</b>` : d < 0 ? ` <b style="color:#ffd0d0">▼${-d}</b>` : '';
   const when = m.sec != null ? `⏱ Bạn trả lời lúc <b>${m.sec}s</b>${m.pos ? ` · nhanh thứ <b>${m.pos}</b> trong số bạn đúng` : ''}<br>` : '';
-  $('#rInfo').innerHTML = (kind === 'ok' ? '' : `<div class="rans">${esc(m.ans)}</div>`) + when +
+  const stand = m.called ? '<div class="rstand">🙋 Sai 2 câu liên tiếp – lên bảng đứng nhé! Trả lời đúng câu sau để về chỗ.</div>'
+    : m.back ? '<div class="rstand back">🪑 Giỏi lắm! Được về chỗ rồi.</div>'
+    : m.standing ? '<div class="rstand">🙋 Vẫn đang đứng bảng – cố lên, đúng câu sau là về chỗ!</div>' : '';
+  $('#rInfo').innerHTML = (kind === 'ok' ? '' : `<div class="rans">${esc(m.ans)}</div>`) + stand + when +
     `Tổng: <b>${m.score}</b> điểm<br>Hạng <b>${m.rank}</b>/${m.n}${mv}<br><small>Nhìn lên bảng xem chỗ ngồi mới nhé!</small>`;
   show('sRes');
   if (navigator.vibrate) navigator.vibrate(kind === 'ok' ? [40, 60, 40] : 120);
