@@ -2,6 +2,7 @@ import { createHost, IS_LOCAL } from './net.js';
 import { avatarSVG, teacherSVG, randomLook, sanitizeLook } from './avatar.js';
 import { parseQuestions, SAMPLE, TEMPLATES, TYPES, speakText, isChoice, check, answerLabel, shuffleChunks, norm } from './questions.js';
 import * as S from './sound.js';
+import { openDenXanh } from './denxanh.js';
 
 const MAX = 40, COLS = 8, ROWS = 5;
 const ROW_Y0 = 318, ROW_H = 116, PAIR_W = 330, GAP = 52;
@@ -707,3 +708,9 @@ addEventListener('beforeunload', (e) => { if (st.phase !== 'setup') { e.preventD
 
 // cho phép tự động hoá khi thử nghiệm
 window.__lophoc = { st, addBots, next, closeQuestion };
+
+/* ================= ĐÈN XANH – ĐÈN ĐỎ ================= */
+const dxOpts = { getClassNames: () => [...st.players.values()].sort((a, b) => a.joinNo - b.joinNo).map((p) => p.name.replace(/\s*🤖.*$/, '').trim()).filter(Boolean) };
+$('#dxOpen1').onclick = () => openDenXanh(dxOpts);
+$('#dxOpen2').onclick = () => openDenXanh(dxOpts);
+if (location.hash === '#denxanh') openDenXanh(dxOpts);

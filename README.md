@@ -12,6 +12,9 @@ Game đố vui cả lớp: màn hình giáo viên chiếu lên bảng (lớp h�
 - 6 dạng bài: trắc nghiệm, đúng/sai, điền từ, sắp xếp câu, tìm lỗi sai, nghe & chép.
 - Mỗi session **15–20 câu**, kết thúc bằng lễ **vinh danh top 3** (bục podium, nhạc, pháo giấy) + tải bảng điểm CSV.
 
+## 🚦 Đèn Xanh – Đèn Đỏ (gọi trả bài)
+Nút trên trang giáo viên (hoặc trang chủ). Nhập danh sách tên học sinh (mỗi dòng 1 tên, hoặc lấy tên từ lớp đang chơi) → cả lớp đi lên khi đèn xanh, đứng im khi đèn đỏ → máy ngẫu nhiên "bắt" 1 bạn đang cử động lên trả bài. Có tuỳ chọn không gọi lại bạn đã trả bài, lồng tiếng, số lần đèn đỏ cho hồi hộp.
+
 ## Chạy thử
 Mở `host.html?local=1` → "Mở lớp học" → bấm **+5 học sinh ảo** vài lần để xem lớp đông. Mở thêm tab `play.html?local=1` trên cùng trình duyệt để đóng vai học sinh.
 

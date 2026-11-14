@@ -6,6 +6,7 @@
 <title>Lớp Học Vui – Màn hình giáo viên</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/host.css">
+<link rel="stylesheet" href="css/denxanh.css">
 <script src="vendor/mqtt.min.js"></script>
 <script src="vendor/qrcode.js"></script>
 </head>
@@ -16,6 +17,7 @@
   <header class="setup-head">
     <h1>🏫 Lớp Học Vui</h1>
     <p>Chuẩn bị bộ câu hỏi rồi mở lớp. Học sinh vào bằng QR hoặc mã PIN trên điện thoại.</p>
+    <button class="btn warn dx-open-btn" id="dxOpen1">🚦 Đèn Xanh – Đèn Đỏ: gọi ngẫu nhiên 1 bạn lên trả bài</button>
   </header>
   <div class="setup-grid">
     <div class="card">
@@ -110,6 +112,7 @@
   <div class="corner">
     <button id="muteBtn" title="Tắt/bật âm thanh">🔊</button>
     <button id="fsBtn" title="Toàn màn hình">⛶</button>
+    <button id="dxOpen2" title="Đèn xanh – đèn đỏ: gọi trả bài">🚦</button>
   </div>
 </section>
 

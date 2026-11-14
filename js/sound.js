@@ -44,3 +44,12 @@ export const fanfare = () => {
   n.forEach(([f, s, d]) => { tone(f, s, d, 'triangle', 0.16); tone(f / 2, s, d, 'sine', 0.08); });
 };
 export const cymbal = () => noise(0, 1.2, 0.25);
+// Giai điệu ngắn khi đèn xanh (tự sáng tác), trả về thời lượng (giây)
+export const melody = () => {
+  const n = [[659, .0], [659, .22], [784, .44], [659, .66], [587, .88], [523, 1.1], [587, 1.32], [659, 1.54]];
+  n.forEach(([f, s]) => { tone(f, s, .2, 'square', 0.05); tone(f / 2, s, .2, 'triangle', 0.08); });
+  return 1.8;
+};
+export const buzzer = () => { tone(110, 0, 0.6, 'sawtooth', 0.18); tone(116, 0, 0.6, 'square', 0.08); };
+export const turn = () => { tone(300, 0, 0.12, 'triangle', 0.12); tone(200, 0.1, 0.18, 'triangle', 0.12); };
+export const blip = () => tone(1200, 0, 0.04, 'square', 0.05);
