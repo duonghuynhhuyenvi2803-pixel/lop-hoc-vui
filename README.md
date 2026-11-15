@@ -15,6 +15,9 @@ Game đố vui cả lớp: màn hình giáo viên chiếu lên bảng (lớp h�
 ## 🚦 Đèn Xanh – Đèn Đỏ (gọi trả bài)
 Nút trên trang giáo viên (hoặc trang chủ). Nhập danh sách tên học sinh (mỗi dòng 1 tên, hoặc lấy tên từ lớp đang chơi) → cả lớp đi lên khi đèn xanh, đứng im khi đèn đỏ → máy ngẫu nhiên "bắt" 1 bạn đang cử động lên trả bài. Có tuỳ chọn không gọi lại bạn đã trả bài, lồng tiếng, số lần đèn đỏ cho hồi hộp.
 
+## ✍️ Phòng Luyện Viết
+`viet.html` (giáo viên) – nhập đề bài, thời gian, số từ tối thiểu rồi mở phòng. Học sinh vào `v.html` bằng QR/PIN để gõ bài (hoặc gõ đáp án bài tập). Giáo viên thấy bài của cả lớp cập nhật trực tiếp: số từ, đang gõ / đã nộp / mất kết nối, số lần dán và rời trang. Có đồng hồ (đếm ngược hoặc đếm lên), tự khoá bài khi hết giờ, tự lưu trên máy giáo viên ("Buổi đã lưu"), mở lại phòng đang dở với đúng mã PIN cũ, tải PDF từng bài hoặc cả lớp.
+
 ## Chạy thử
 Mở `host.html?local=1` → "Mở lớp học" → bấm **+5 học sinh ảo** vài lần để xem lớp đông. Mở thêm tab `play.html?local=1` trên cùng trình duyệt để đóng vai học sinh.
 

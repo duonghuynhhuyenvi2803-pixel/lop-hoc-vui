@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#5b3fb5">
+<title>Phòng Luyện Viết</title>
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/viet.css">
+<script src="vendor/mqtt.min.js"></script>
+</head>
+<body class="student">
+<section id="sJoin" class="sjoin">
+  <h1>✍️ Phòng Luyện Viết</h1>
+  <label>Mã PIN<input id="pin" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off"></label>
+  <label>Họ tên của bạn<input id="name" maxlength="30" placeholder="VD: Nguyễn Minh Anh" autocomplete="off"></label>
+  <button class="btn go big" id="joinBtn">Vào phòng</button>
+  <p id="joinErr" class="err"></p>
+</section>
+
+<section id="sWrite" class="swrite" hidden>
+  <div class="sbar">
+    <div class="stimer" id="sTimer"><span id="sNum">--:--</span><small id="sLab"></small></div>
+    <div class="swords"><b id="sWords">0</b><span id="sMin"></span> từ</div>
+    <div class="ssync" id="sSync"></div>
+  </div>
+  <details class="sprompt" id="sPromptBox" open><summary>📄 Đề bài <span id="sRoom"></span></summary><div id="sPrompt"></div></details>
+  <div id="sNotice" class="snotice"></div>
+  <textarea id="text" placeholder="Gõ bài của bạn ở đây…" disabled></textarea>
+  <div class="sfoot">
+    <span id="sName"></span>
+    <button class="btn go" id="submit">Nộp bài ✔</button>
+    <button class="btn ghost" id="unsubmit" hidden>↩ Viết tiếp</button>
+  </div>
+</section>
+<div id="net" class="net" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="js/v.js"></script>
+</body>
+</html>
