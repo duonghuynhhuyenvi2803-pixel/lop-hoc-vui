@@ -40,7 +40,7 @@ function save() {
 /* ---------- giọng đọc tiếng Việt ---------- */
 function loadVoices() {
   if (!('speechSynthesis' in window)) return;
-  st.viVoices = speechSynthesis.getVoices().filter((v) => /^vi/i.test(v.lang))
+  st.viVoices = speechSynthesis.getVoices().filter((v) => /^en/i.test(v.lang))
     .sort((a, b) => (/(natural|online|google)/i.test(a.name) ? 0 : 1) - (/(natural|online|google)/i.test(b.name) ? 0 : 1));
 }
 function talk(text) {
@@ -51,7 +51,7 @@ function talk(text) {
     try {
       speechSynthesis.cancel();
       const u = new SpeechSynthesisUtterance(text);
-      u.voice = st.viVoices[0]; u.lang = u.voice.lang; u.rate = 1.05; u.onend = fin; u.onerror = fin;
+      u.voice = st.viVoices[0]; u.lang = u.voice.lang; u.rate = 1; u.onend = fin; u.onerror = fin;
       speechSynthesis.speak(u);
     } catch (e) { fin(); }
     setTimeout(fin, 1500 + text.length * 90);
@@ -71,50 +71,50 @@ function build() {
     <div class="dx-sky"><div class="sun"></div><div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div></div>
     <div class="dx-fence"></div>
     <div class="dx-ground"></div>
-    <div class="dx-finish"><span>ĐÍCH</span></div>
-    <div class="dx-startline"><span>XUẤT PHÁT</span></div>
+    <div class="dx-finish"><span>FINISH</span></div>
+    <div class="dx-startline"><span>START</span></div>
     <div class="dx-tree t1">🌳</div><div class="dx-tree t2">🌳</div>
     <div class="dx-teacher" id="dxTeacher"></div>
     <div class="dx-light" id="dxLight"><div class="lamp red"></div><div class="lamp green"></div></div>
     <div class="dx-field" id="dxField"></div>
     <div class="dx-ret" id="dxRet" hidden></div>
     <div class="dx-banner" id="dxBanner"></div>
-    <div class="dx-title">🚦 Đèn Xanh – Đèn Đỏ</div>
+    <div class="dx-title">🚦 Red Light, Green Light</div>
     <div class="dx-hud">
       <div class="dx-count" id="dxCount"></div>
-      <button class="btn go" id="dxGo">▶ Bắt đầu</button>
-      <button class="btn tiny" id="dxEdit">📝 Danh sách</button>
-      <button class="btn tiny" id="dxReset">↺ Gọi lại từ đầu</button>
-      <button class="btn tiny" id="dxClose">✕ Đóng</button>
+      <button class="btn go" id="dxGo">▶ Start</button>
+      <button class="btn tiny" id="dxEdit">📝 Name list</button>
+      <button class="btn tiny" id="dxReset">↺ Reset called list</button>
+      <button class="btn tiny" id="dxClose">✕ Close</button>
     </div>
     <div class="dx-called" id="dxCalled"></div>
     <div class="dx-cap" id="dxCap" hidden></div>
     <div class="dx-card" id="dxCard" hidden></div>
     <div class="dx-setup" id="dxSetup" hidden>
-      <h2>📝 Danh sách học sinh</h2>
-      <p>Mỗi dòng 1 tên (dán từ Excel/Word cũng được). Tối đa 60 bạn.</p>
+      <h2>📝 Student list</h2>
+      <p>One name per line (you can paste from Excel/Word). Up to 60 students.</p>
       <textarea id="dxNames" spellcheck="false" placeholder="Nguyễn Minh Anh&#10;Trần Bảo Châu&#10;Lê Gia Huy&#10;…"></textarea>
-      <div class="dx-row"><span id="dxN">0 bạn</span><button class="btn tiny" id="dxFromClass" hidden>⬇ Lấy tên từ lớp đang chơi</button></div>
-      <label><input type="checkbox" id="dxNoRep"> Không gọi lại bạn đã trả bài</label>
-      <label><input type="checkbox" id="dxVoice"> 🎙️ Lồng tiếng (tiếng Việt)</label>
-      <label>Số lần đèn đỏ mỗi lượt (lần cuối mới bắt người):
-        <select id="dxReds"><option value="1">1 – bắt luôn</option><option value="2">2 – hồi hộp</option><option value="3">3 – rất hồi hộp</option></select></label>
-      <div class="dx-row end"><button class="btn go" id="dxSave">Vào sân chơi →</button></div>
+      <div class="dx-row"><span id="dxN">0 students</span><button class="btn tiny" id="dxFromClass" hidden>⬇ Use names from the current class</button></div>
+      <label><input type="checkbox" id="dxNoRep"> Don't pick students who have already answered</label>
+      <label><input type="checkbox" id="dxVoice"> 🎙️ Voice</label>
+      <label>Red lights per round (only the last one catches someone):
+        <select id="dxReds"><option value="1">1 – straight away</option><option value="2">2 – suspense</option><option value="3">3 – lots of suspense</option></select></label>
+      <div class="dx-row end"><button class="btn go" id="dxSave">Go to the playground →</button></div>
     </div>
   </div>`;
   document.body.appendChild(root);
   $('#dxGo').onclick = () => play();
   $('#dxEdit').onclick = () => showSetup(true);
-  $('#dxReset').onclick = () => { if (confirm('Cho tất cả các bạn vào lại danh sách chờ gọi?')) { st.called = []; save(); layout(); } };
+  $('#dxReset').onclick = () => { if (confirm('Put everyone back on the waiting list?')) { st.called = []; save(); layout(); } };
   $('#dxClose').onclick = close;
-  $('#dxNames').oninput = () => ($('#dxN').textContent = parseNames($('#dxNames').value).length + ' bạn');
+  $('#dxNames').oninput = () => ($('#dxN').textContent = parseNames($('#dxNames').value).length + ' students');
   $('#dxFromClass').onclick = () => {
     const n = opts.getClassNames ? opts.getClassNames() : [];
     if (n.length) { $('#dxNames').value = n.join('\n'); $('#dxNames').oninput(); }
   };
   $('#dxSave').onclick = () => {
     const names = parseNames($('#dxNames').value);
-    if (!names.length) { alert('Nhập ít nhất 1 tên nhé.'); return; }
+    if (!names.length) { alert('Please enter at least one name.'); return; }
     st.names = names; st.called = st.called.filter((n) => names.includes(n));
     st.noRepeat = $('#dxNoRep').checked; st.voice = $('#dxVoice').checked; st.reds = +$('#dxReds').value;
     save(); showSetup(false); layout();
@@ -143,7 +143,7 @@ function showSetup(on) {
     $('#dxNoRep').checked = st.noRepeat; $('#dxVoice').checked = st.voice; $('#dxReds').value = String(st.reds);
     const cls = opts.getClassNames ? opts.getClassNames() : [];
     $('#dxFromClass').hidden = !cls.length;
-    if (cls.length) $('#dxFromClass').textContent = `⬇ Lấy ${cls.length} tên từ lớp đang chơi`;
+    if (cls.length) $('#dxFromClass').textContent = `⬇ Use ${cls.length} names from the current class`;
     setTimeout(() => $('#dxNames').focus(), 50);
   }
 }
@@ -175,8 +175,8 @@ function layout() {
 function refresh() {
   st.kids.forEach((k) => k.el.classList.toggle('done', st.noRepeat && st.called.includes(k.name)));
   const left = st.kids.filter((k) => !(st.noRepeat && st.called.includes(k.name))).length;
-  $('#dxCount').innerHTML = st.noRepeat ? `Còn <b>${left}</b>/${st.kids.length} bạn chưa trả bài` : `<b>${st.kids.length}</b> bạn`;
-  $('#dxCalled').innerHTML = st.called.length ? `<b>✔ Đã trả bài (${st.called.length})</b>` + st.called.map((n, i) => `<div>${i + 1}. ${esc(n)}</div>`).join('') : '';
+  $('#dxCount').innerHTML = st.noRepeat ? `<b>${left}</b>/${st.kids.length} students left` : `<b>${st.kids.length}</b> students`;
+  $('#dxCalled').innerHTML = st.called.length ? `<b>✔ Already answered (${st.called.length})</b>` + st.called.map((n, i) => `<div>${i + 1}. ${esc(n)}</div>`).join('') : '';
   $('#dxGo').disabled = st.running || !left;
 }
 function setLight(c) {
@@ -225,46 +225,46 @@ async function scan(target, hops) {
 async function play() {
   if (st.running) return;
   const pool = st.kids.filter((k) => !(st.noRepeat && st.called.includes(k.name)));
-  if (!pool.length) { talk('Cả lớp đã trả bài hết rồi!'); return; }
+  if (!pool.length) { talk('Everyone has already had a turn!'); return; }
   S.unlock();
   st.running = true; refresh();
   $('#dxCard').hidden = true;
   for (let round = 1; round <= st.reds; round++) {
     setLight('green'); S.turn();
-    banner('ĐÈN XANH', 'green');
-    talk(round === 1 ? 'Đèn xanh! Đi nào!' : 'Đèn xanh!');
+    banner('GREEN LIGHT', 'green');
+    talk(round === 1 ? 'Green light! Go!' : 'Green light!');
     const d = S.melody();
     await walk(d * 1000 + 600 + Math.random() * 1600);
     if (root.hidden) return;
     setLight('red'); S.turn();
-    banner('ĐÈN ĐỎ!', 'red');
-    await talk('Đèn đỏ! Đứng im!');
+    banner('RED LIGHT!', 'red');
+    await talk('Red light! Freeze!');
     if (root.hidden) return;
     S.drumroll(round === st.reds ? 2.2 : 1.2);
     if (round < st.reds) {
       await scan(null, 9);
-      await talk(pick(['Không ai cử động. Đi tiếp nào!', 'Giỏi lắm, cả lớp đứng im. Tiếp tục!']));
+      await talk(pick(['Nobody moved. Keep going!', 'Well done, everybody froze. Let\'s continue!']));
     }
   }
   const chosen = pick(pool);
   await scan(chosen, 18);
   if (root.hidden) return;
   chosen.el.classList.add('caught'); S.buzzer();
-  banner('BẮT ĐƯỢC RỒI!', 'red');
-  await talk(`Bắt được rồi! ${chosen.name} vừa cử động. Mời ${chosen.name} lên trả bài!`);
+  banner('GOTCHA!', 'red');
+  await talk(`Gotcha! ${chosen.name} moved. ${chosen.name}, please come to the board!`);
   showCard(chosen);
 }
 function showCard(k) {
   const c = $('#dxCard');
   c.innerHTML = `<div class="dx-card-in">
-      <div class="lab">🚨 Bắt được bạn đang cử động!</div>
+      <div class="lab">🚨 Caught moving!</div>
       ${avatarSVG(lookFor(k.name), 'think')}
       <div class="nm">${esc(k.name)}</div>
-      <div class="sub">Mời bạn lên bảng trả bài 📖</div>
+      <div class="sub">Please come to the board 📖</div>
       <div class="btns">
-        <button class="btn go" data-a="done">✔ Đã trả bài</button>
-        <button class="btn warn" data-a="again">🎲 Chọn bạn khác</button>
-        <button class="btn ghost" data-a="close">Để sau</button>
+        <button class="btn go" data-a="done">✔ Done</button>
+        <button class="btn warn" data-a="again">🎲 Pick someone else</button>
+        <button class="btn ghost" data-a="close">Later</button>
       </div></div>`;
   c.hidden = false;
   c.onclick = (e) => {
@@ -289,5 +289,6 @@ export function openDenXanh(o = {}) {
 function close() {
   cancelAnimationFrame(st.raf); try { speechSynthesis.cancel(); } catch (e) {}
   st.running = false; root.hidden = true; document.body.classList.remove('dx-open');
+  if (location.hash === '#denxanh') location.href = 'index.html';   // mở từ dashboard → quay về dashboard
 }
 window.__denxanh = { st, play };

@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="theme-color" content="#2f5d47">
-<title>Lớp Học Vui – Vào lớp</title>
+<title>Quiz Classroom – Join</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/play.css">
 <script src="vendor/mqtt.min.js"></script>
@@ -13,15 +13,15 @@
 <div id="app">
   <!-- Vào lớp -->
   <section id="sJoin" class="screen">
-    <h1>🏫 Lớp Học Vui</h1>
-    <label>Mã PIN<input id="pin" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off"></label>
-    <label>Tên của bạn<input id="name" maxlength="18" placeholder="VD: Minh Anh" autocomplete="off"></label>
+    <h1>🏫 Quiz Classroom</h1>
+    <label>PIN code<input id="pin" inputmode="numeric" maxlength="7" placeholder="123 456" autocomplete="off"></label>
+    <label>Your name<input id="name" maxlength="18" placeholder="e.g. Minh Anh" autocomplete="off"></label>
     <div class="maker">
       <div id="preview" class="preview"></div>
       <div class="pickers" id="pickers"></div>
-      <button class="btn ghost sm" id="rand">🎲 Ngẫu nhiên</button>
+      <button class="btn ghost sm" id="rand">🎲 Random</button>
     </div>
-    <button class="btn go big" id="joinBtn">Vào lớp</button>
+    <button class="btn go big" id="joinBtn">Join class</button>
     <p id="joinErr" class="err"></p>
   </section>
 
@@ -37,7 +37,7 @@
   <section id="sQ" class="screen q" hidden>
     <div class="qtop"><span id="qNo"></span><span id="qScore"></span></div>
     <div class="tbar"><div id="tfill"></div></div>
-    <div id="standBar" class="standbar" hidden>🙋 Bạn đang đứng bảng – trả lời đúng để về chỗ!</div>
+    <div id="standBar" class="standbar" hidden>🙋 You are standing at the board – answer correctly to go back to your seat!</div>
     <div id="qText" class="qtext"></div>
     <div id="qHint" class="qhint"></div>
     <div id="opts" class="opts"></div>

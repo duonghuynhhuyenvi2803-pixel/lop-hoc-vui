@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Phòng Luyện Viết – Giáo viên</title>
+<title>Writing Room – Teacher</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/viet.css">
 <script src="vendor/mqtt.min.js"></script>
@@ -13,26 +13,26 @@
 
 <!-- ============ CÀI ĐẶT ============ -->
 <section id="setup" class="wsetup">
-  <header><a href="index.html" class="back">← Trang chủ</a><h1>✍️ Phòng Luyện Viết</h1>
-    <p>Học sinh vào bằng mã PIN để gõ bài. Bạn theo dõi trực tiếp bài của cả lớp, có đồng hồ, đếm từ, tự lưu và tải PDF.</p></header>
+  <header><a href="index.html" class="back">← Dashboard</a><h1>✍️ Writing Room</h1>
+    <p>Students join with a PIN and type their writing. You watch every text live, with a timer, word counts, auto-save and PDF download.</p></header>
   <div class="wgrid">
     <div class="card">
-      <h2>📝 Buổi viết mới</h2>
-      <label>Tên buổi / lớp <input id="title" maxlength="60" placeholder="VD: 10A1 – Writing Task 2"></label>
-      <label>Đề bài hoặc bài tập (học sinh sẽ thấy)
-        <textarea id="prompt" rows="7" placeholder="VD: Some people think that students should wear school uniforms. Do you agree or disagree? Write at least 150 words.&#10;&#10;Hoặc dán bài tập để học sinh gõ đáp án: 1. ... 2. ..."></textarea></label>
+      <h2>📝 New writing session</h2>
+      <label>Session / class name <input id="title" maxlength="60" placeholder="e.g. 10A1 – Writing Task 2"></label>
+      <label>Task or exercise (students will see this)
+        <textarea id="prompt" rows="7" placeholder="e.g. Some people think that students should wear school uniforms. Do you agree or disagree? Write at least 150 words.&#10;&#10;Or paste an exercise for students to type their answers: 1. ... 2. ..."></textarea></label>
       <div class="two">
-        <label>Thời gian (phút) <input id="limit" type="number" min="0" max="240" value="20"><small>0 = không giới hạn, đồng hồ đếm lên</small></label>
-        <label>Số từ tối thiểu <input id="minWords" type="number" min="0" max="5000" value="150"><small>0 = không yêu cầu</small></label>
+        <label>Time limit (minutes) <input id="limit" type="number" min="0" max="240" value="20"><small>0 = no limit, the timer counts up</small></label>
+        <label>Minimum words <input id="minWords" type="number" min="0" max="5000" value="150"><small>0 = no minimum</small></label>
       </div>
-      <label class="chk"><input id="lockOnEnd" type="checkbox" checked> Hết giờ thì tự khoá bài</label>
-      <label class="chk"><input id="noSpell" type="checkbox" checked> Tắt gợi ý chính tả / tự sửa lỗi trên máy học sinh</label>
-      <label class="chk"><input id="blockPaste" type="checkbox"> Chặn dán (paste) – không chặn thì vẫn đếm số lần dán</label>
-      <div class="foot"><button class="btn go big" id="openRoom">Mở phòng →</button>
+      <label class="chk"><input id="lockOnEnd" type="checkbox" checked> Lock writing automatically when time is up</label>
+      <label class="chk"><input id="noSpell" type="checkbox" checked> Turn off spell-check / autocorrect on students' devices</label>
+      <label class="chk"><input id="blockPaste" type="checkbox"> Block pasting (if not blocked, pastes are still counted)</label>
+      <div class="foot"><button class="btn go big" id="openRoom">Open room →</button>
         <button class="btn ghost" id="resume" hidden></button></div>
     </div>
     <div class="card">
-      <h2>💾 Buổi đã lưu <small>(lưu trên máy này)</small></h2>
+      <h2>💾 Saved sessions <small>(stored on this computer)</small></h2>
       <div id="saved" class="saved"></div>
     </div>
   </div>
@@ -42,35 +42,35 @@
 <section id="room" hidden>
   <div class="rtop">
     <div class="rtitle"><b id="rTitle"></b><span id="rSub"></span></div>
-    <button class="joinbox" id="joinBox" title="Bấm để phóng to mã QR">
-      <span class="jl">Vào <b id="jUrl"></b> · PIN</span><span class="jpin" id="jPin"></span><span class="jqr" id="jQr"></span></button>
+    <button class="joinbox" id="joinBox" title="Click to enlarge the QR code">
+      <span class="jl">Go to <b id="jUrl"></b> · PIN</span><span class="jpin" id="jPin"></span><span class="jqr" id="jQr"></span></button>
     <div class="rtimer" id="rTimer"><span id="tNum">00:00</span><small id="tLab"></small></div>
     <div class="rctl" id="rCtl"></div>
   </div>
   <div class="rbar">
     <div id="stats" class="stats"></div>
-    <label>Sắp xếp <select id="sort"><option value="join">Thứ tự vào phòng</option><option value="name">Tên A→Z</option><option value="few">Ít từ nhất trước</option><option value="many">Nhiều từ nhất trước</option></select></label>
-    <button class="btn sm ghost" id="showPrompt">📄 Đề bài</button>
-    <button class="btn sm" id="pdfAll">⬇ PDF cả lớp</button>
-    <button class="btn sm ghost" id="saveNow">💾 Lưu</button>
-    <button class="btn sm ghost" id="closeRoom">✕ Đóng phòng</button>
+    <label>Sort <select id="sort"><option value="join">Join order</option><option value="name">Name A→Z</option><option value="few">Fewest words first</option><option value="many">Most words first</option></select></label>
+    <button class="btn sm ghost" id="showPrompt">📄 Task</button>
+    <button class="btn sm" id="pdfAll">⬇ PDF (whole class)</button>
+    <button class="btn sm ghost" id="saveNow">💾 Save</button>
+    <button class="btn sm ghost" id="closeRoom">✕ Close room</button>
   </div>
   <div id="grid" class="wcards"></div>
-  <div id="empty" class="empty">Chưa có học sinh nào. Cho cả lớp quét mã QR hoặc nhập mã PIN nhé 👆</div>
+  <div id="empty" class="empty">No students yet. Ask the class to scan the QR code or enter the PIN 👆</div>
 </section>
 
 <div id="modal" class="wmodal" hidden><div class="win">
   <div class="mh"><b id="mName"></b><span id="mMeta"></span><button id="mX" class="x">✕</button></div>
   <div id="mText" class="mtext"></div>
   <div class="mf">
-    <button class="btn sm" id="mPdf">⬇ PDF bài này</button>
-    <button class="btn sm ghost" id="mCopy">📋 Chép</button>
-    <button class="btn sm ghost" id="mReopen">↩ Cho viết tiếp</button>
-    <button class="btn sm ghost" id="mKick">Mời ra khỏi phòng</button>
+    <button class="btn sm" id="mPdf">⬇ PDF (this text)</button>
+    <button class="btn sm ghost" id="mCopy">📋 Copy</button>
+    <button class="btn sm ghost" id="mReopen">↩ Reopen for writing</button>
+    <button class="btn sm ghost" id="mKick">Remove from room</button>
   </div>
 </div></div>
 <div id="qrBig" class="wmodal" hidden><div class="win qr"><div id="qrBigSvg"></div>
-  <div class="qurl" id="qrBigUrl"></div><div class="qpin" id="qrBigPin"></div><small>Bấm ra ngoài để đóng</small></div></div>
+  <div class="qurl" id="qrBigUrl"></div><div class="qpin" id="qrBigPin"></div><small>Click anywhere to close</small></div></div>
 <div id="toast" class="toast" hidden></div>
 
 <script type="module" src="js/viet.js"></script>

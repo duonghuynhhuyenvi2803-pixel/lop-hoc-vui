@@ -1,31 +1,80 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lớp Học Vui</title>
+<title>Lớp Học Vui – Teacher Dashboard</title>
 <link rel="stylesheet" href="css/base.css">
 <style>
-  body { min-height: 100dvh; display: grid; place-items: center; background: linear-gradient(#f6e6c8, #e9cfa3); }
-  main { text-align: center; padding: 24px; }
-  h1 { font-size: clamp(40px, 8vw, 72px); margin: 0; }
-  p { font-size: 20px; margin: 4px 0 28px; opacity: .8; }
-  .choices { display: flex; gap: 18px; justify-content: center; flex-wrap: wrap; }
-  .choices a { text-decoration: none; display: block; width: 260px; padding: 26px 18px; border-radius: 24px; color: #fff; font-size: 26px; font-weight: 800; box-shadow: 0 7px 0 rgba(0,0,0,.25); }
-  .choices a span { display: block; font-size: 64px; }
-  .choices a small { display: block; font-size: 16px; font-weight: 600; opacity: .9; }
-  .t { background: #2f5d47; } .s { background: #3e7bfa; } .r { background: #e5484d; } .w { background: #5b3fb5; }
+  body { min-height: 100dvh; background: linear-gradient(#f6e6c8, #efe0c2); }
+  main { max-width: 1120px; margin: 0 auto; padding: 28px 20px 40px; }
+  header { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 6px; }
+  h1 { font-size: clamp(34px, 6vw, 54px); margin: 0; line-height: 1; }
+  .tag { background: var(--ink); color: #fff; font-weight: 700; border-radius: 99px; padding: 3px 14px; font-size: 15px; margin-bottom: 6px; }
+  .lead { font-size: 19px; margin: 6px 0 22px; opacity: .8; }
+  .rooms { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+  .room { background: #fff; border-radius: 24px; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: var(--ink); box-shadow: 0 7px 0 rgba(0,0,0,.16); transition: transform .12s; }
+  .room:hover { transform: translateY(-4px); }
+  .room .art { height: 130px; display: grid; place-items: center; font-size: 76px; color: #fff; }
+  .room .body { padding: 14px 20px 18px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .room h2 { margin: 0; font-size: 26px; }
+  .room p { margin: 0; font-size: 16px; line-height: 1.4; opacity: .85; flex: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 10px; }
+  .chips span { background: #f3ead8; border-radius: 99px; padding: 1px 10px; font-size: 13px; font-weight: 700; }
+  .open { align-self: flex-start; color: #fff; font-weight: 800; font-size: 18px; border-radius: 12px; padding: 8px 20px; box-shadow: 0 4px 0 rgba(0,0,0,.22); }
+  .quiz .art, .quiz .open { background: #2f5d47; } .write .art, .write .open { background: #5b3fb5; } .light .art, .light .open { background: #e5484d; }
+  .note { margin-top: 22px; background: rgba(255,255,255,.7); border-radius: 18px; padding: 14px 20px; font-size: 16px; line-height: 1.5; }
+  .note b { font-weight: 800; }
+  .resume { display: inline-block; margin-top: 8px; font-weight: 800; color: #5b3fb5; }
 </style>
 </head>
 <body>
 <main>
-  <h1>🏫 Lớp Học Vui</h1>
-  <p>Trò chơi đố vui cả lớp – ai giỏi được ngồi bàn đầu!</p>
-  <div class="choices">
-    <a class="t" href="host.html"><span>🏫</span>Mở lớp đố vui<small>Chiếu lên bảng, học sinh vào bằng mã PIN</small></a>
-    <a class="w" href="viet.html"><span>✍️</span>Phòng luyện viết<small>Xem cả lớp gõ bài, đếm từ, lưu PDF</small></a>
-    <a class="r" href="host.html#denxanh"><span>🚦</span>Đèn xanh – Đèn đỏ<small>Gọi ngẫu nhiên 1 bạn lên trả bài</small></a>
+  <header><h1>🏫 Lớp Học Vui</h1><span class="tag">Teacher Dashboard</span></header>
+  <p class="lead">Choose a room to open on the classroom screen.</p>
+
+  <div class="rooms">
+    <a class="room quiz" href="host.html">
+      <div class="art">🏆</div>
+      <div class="body">
+        <h2>Quiz Classroom</h2>
+        <p>A live quiz in a cartoon classroom. Students answer on their phones, the fastest correct answers score the most, and everyone changes seats by rank after each question.</p>
+        <div class="chips"><span>📱 Phones</span><span>6 question types</span><span>Up to 40 students</span><span>Top-3 podium</span></div>
+        <span class="open">Open →</span>
+      </div>
+    </a>
+    <a class="room write" href="viet.html">
+      <div class="art">✍️</div>
+      <div class="body">
+        <h2>Writing Room</h2>
+        <p>Students type an essay or exercise answers while you watch every text live. Includes a timer, word counts, auto-save and PDF download.</p>
+        <div class="chips"><span>📱💻 Phones or laptops</span><span>Timer</span><span>Word count</span><span>PDF</span></div>
+        <span class="open">Open →</span>
+        <span class="resume" id="wInfo"></span>
+      </div>
+    </a>
+    <a class="room light" href="host.html#denxanh">
+      <div class="art">🚦</div>
+      <div class="body">
+        <h2>Red Light, Green Light</h2>
+        <p>An animated random name picker. The class walks on green and freezes on red, then the teacher "catches" one student to come to the board.</p>
+        <div class="chips"><span>🖥️ Teacher screen only</span><span>Your own name list</span><span>Up to 60 names</span></div>
+        <span class="open">Open →</span>
+      </div>
+    </a>
+  </div>
+
+  <div class="note">
+    <b>How students join:</b> they never need this page. When you open the Quiz Classroom or the Writing Room, the screen shows a <b>QR code</b> and a <b>6-digit PIN</b>. Students scan the code (or type the short link shown on screen) and enter the PIN.
   </div>
 </main>
+<script>
+  try {
+    const list = JSON.parse(localStorage.getItem('lophocvui-viet-sessions') || '[]');
+    const cur = localStorage.getItem('lophocvui-viet-current');
+    const open = list.find((s) => s.id === cur && Date.now() - (s.savedAt || s.date) < 12 * 3600e3);
+    document.getElementById('wInfo').textContent = open ? '↩ Unfinished room: ' + (open.title || 'Writing session') : list.length ? '💾 ' + list.length + ' saved session' + (list.length > 1 ? 's' : '') : '';
+  } catch (e) {}
+</script>
 </body>
 </html>

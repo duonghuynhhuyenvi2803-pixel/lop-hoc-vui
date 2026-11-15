@@ -9,12 +9,12 @@
 // Thêm dòng "Time: 30" nếu muốn câu đó dài hơn 20 giây.
 
 export const TYPES = {
-  mc: { name: 'Trắc nghiệm', icon: '🔤' },
-  tf: { name: 'Đúng / Sai', icon: '⚖️' },
-  fill: { name: 'Điền từ', icon: '✍️' },
-  order: { name: 'Sắp xếp câu', icon: '🧩' },
-  error: { name: 'Tìm lỗi sai', icon: '🔍' },
-  listen: { name: 'Nghe & chép', icon: '🎧' },
+  mc: { name: 'Multiple choice', icon: '🔤' },
+  tf: { name: 'True / False', icon: '⚖️' },
+  fill: { name: 'Fill the gap', icon: '✍️' },
+  order: { name: 'Word order', icon: '🧩' },
+  error: { name: 'Find the mistake', icon: '🔍' },
+  listen: { name: 'Dictation', icon: '🎧' },
 };
 const TAGS = {
   tf: 'tf', 'true/false': 'tf', 'đúng sai': 'tf', 'đúng/sai': 'tf',
@@ -142,29 +142,29 @@ export function parseQuestions(text) {
       else if (options.length === 0) qLines.push(line.replace(/^\s*(câu|question|q)?\s*\d+\s*[\.\):]\s*/i, ''));
     }
     const qtext = qLines.join(' ').trim();
-    const err = (s) => errors.push(`Câu ${bi + 1} (${TYPES[type].name}): ${s}`);
-    if (!qtext) return err('thiếu nội dung');
+    const err = (s) => errors.push(`Question ${bi + 1} (${TYPES[type].name}): ${s}`);
+    if (!qtext) return err('the question text is missing');
     const q = { type, text: qtext, time };
     if (type === 'mc') {
       if (ans && correct < 0) correct = 'abcd'.indexOf(ans.trim().toLowerCase()[0]);
-      if (options.length < 2) return err('cần ít nhất 2 lựa chọn A/B/…');
-      if (correct < 0 || correct >= options.length) return err('chưa đánh dấu đáp án đúng (thêm * trước đáp án)');
+      if (options.length < 2) return err('needs at least 2 options A/B/…');
+      if (correct < 0 || correct >= options.length) return err('no correct answer marked (put * before the correct option)');
       q.options = options.slice(0, 4); q.correct = correct;
     } else if (type === 'tf') {
       const a = norm(ans);
       if (['true', 't', 'đúng', 'dung', 'yes'].includes(a)) q.correct = 0;
       else if (['false', 'f', 'sai', 'no'].includes(a)) q.correct = 1;
-      else return err('thêm dòng "Answer: True" hoặc "Answer: False"');
+      else return err('add a line "Answer: True" or "Answer: False"');
       q.options = ['True', 'False'];
     } else if (type === 'fill') {
-      if (!ans) return err('thêm dòng "Answer: ..."');
+      if (!ans) return err('add a line "Answer: ..."');
       q.answers = ans.split('|').map((s) => s.trim()).filter(Boolean);
     } else if (type === 'listen') {
       q.answers = [qtext].concat(ans ? ans.split('|').map((s) => s.trim()).filter(Boolean) : []);
     } else if (type === 'order') {
       const chunks = qtext.includes(' / ') ? qtext.split(' / ').map((s) => s.trim()).filter(Boolean) : qtext.split(/\s+/);
-      if (chunks.length < 3) return err('câu cần ít nhất 3 từ/cụm');
-      if (chunks.length > 14) return err('câu quá dài (tối đa 14 từ/cụm) – hãy ghép cụm bằng " / "');
+      if (chunks.length < 3) return err('the sentence needs at least 3 words/chunks');
+      if (chunks.length > 14) return err('the sentence is too long (max 14 words/chunks) – group words into chunks with " / "');
       q.chunks = chunks; q.answers = [chunks.join(' ')];
       q.text = chunks.join(' ');
     } else if (type === 'error') {
@@ -178,8 +178,8 @@ export function parseQuestions(text) {
       }
       if (last < qtext.length) segs.push({ t: qtext.slice(last) });
       const parts = segs.filter((s) => s.p != null);
-      if (parts.length < 2 || parts.length > 4) return err('cần 2–4 phần trong [ngoặc vuông]');
-      if (cIdx < 0) return err('đánh dấu phần sai bằng * , ví dụ [*have]');
+      if (parts.length < 2 || parts.length > 4) return err('needs 2–4 parts in [square brackets]');
+      if (cIdx < 0) return err('mark the wrong part with *, e.g. [*have]');
       q.segs = segs; q.options = parts.map((p) => p.t); q.correct = cIdx;
       q.text = segs.map((s) => s.t).join('');
     }

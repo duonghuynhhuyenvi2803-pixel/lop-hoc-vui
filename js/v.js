@@ -31,22 +31,22 @@ $('#pin').oninput = () => ($('#pin').value = $('#pin').value.replace(/\D/g, '').
 ['#pin', '#name'].forEach((s) => $(s).addEventListener('keydown', (e) => e.key === 'Enter' && $('#joinBtn').click()));
 $('#joinBtn').onclick = () => {
   const p = $('#pin').value.replace(/\D/g, ''), n = $('#name').value.trim();
-  if (p.length !== 6) return ($('#joinErr').textContent = 'Mã PIN gồm 6 chữ số');
-  if (!n) return ($('#joinErr').textContent = 'Nhập họ tên của bạn nhé');
+  if (p.length !== 6) return ($('#joinErr').textContent = 'The PIN has 6 digits');
+  if (!n) return ($('#joinErr').textContent = 'Please enter your full name');
   me.fullName = n; saveMe(); pin = p; $('#joinErr').textContent = '';
   connect();
 };
 function connect() {
-  $('#joinBtn').disabled = true; $('#joinBtn').textContent = 'Đang vào phòng…';
+  $('#joinBtn').disabled = true; $('#joinBtn').textContent = 'Joining…';
   if (net) net.stop();
   const b = url.get('pin') === pin ? +(url.get('b') || 0) : 0;
   net = joinRoom('w' + pin, {
     onOpen: () => { online = true; net.send({ t: 'join', cid: me.cid, name: me.fullName }); },
-    onClose: () => { online = false; if (joined && !closed) netMsg('📶 Mất kết nối – bài vẫn được giữ trên máy bạn, đang nối lại…'); render(); },
+    onClose: () => { online = false; if (joined && !closed) netMsg('📶 Connection lost – your text is safe on this device, reconnecting…'); render(); },
     onError: (e) => {
-      if (e === 'nopin') resetJoin('Không tìm thấy phòng với mã PIN này. Kiểm tra lại mã nhé.');
-      else if (e === 'blocked') resetJoin('Mạng này đang chặn kết nối 😢 Thử chuyển sang 4G hoặc wifi khác.');
-      else if (!joined) resetJoin('Lỗi kết nối (' + e + '). Thử lại nhé.');
+      if (e === 'nopin') resetJoin('No room found with this PIN. Please check the code.');
+      else if (e === 'blocked') resetJoin('This network is blocking the connection 😢 Try mobile data or another Wi-Fi.');
+      else if (!joined) resetJoin('Connection error (' + e + '). Please try again.');
     },
     onMessage,
   }, b);
@@ -55,7 +55,7 @@ function resetJoin(msg) {
   if (net) { net.stop(); net = null; }
   joined = false; online = false; netMsg('');
   $('#sWrite').hidden = true; $('#sJoin').hidden = false;
-  $('#joinBtn').disabled = false; $('#joinBtn').textContent = 'Vào phòng';
+  $('#joinBtn').disabled = false; $('#joinBtn').textContent = 'Join room';
   $('#joinErr').textContent = msg;
 }
 
@@ -74,7 +74,7 @@ function onMessage(m) {
         else ta.value = m.text || '';
         submitted = !!m.submitted || !!(d && d.submitted);
         $('#sName').textContent = m.name; $('#sRoom').textContent = room.title ? '· ' + room.title : '';
-        $('#sPrompt').textContent = room.prompt || '(Cô chưa nhập đề – nghe hướng dẫn trên lớp nhé)';
+        $('#sPrompt').textContent = room.prompt || '(No written task – listen to your teacher\'s instructions)';
         $('#sMin').textContent = room.minWords ? ' / ' + room.minWords : '';
         if (room.noSpell) { ta.spellcheck = false; ta.setAttribute('autocorrect', 'off'); ta.setAttribute('autocapitalize', 'off'); ta.setAttribute('autocomplete', 'off'); }
         $('#sJoin').hidden = true; $('#sWrite').hidden = false;
@@ -87,9 +87,9 @@ function onMessage(m) {
     }
     case 'state': setState(m); render(); break;
     case 'ok': if (m.n === seq && !dirty) sync('saved'); break;
-    case 'sub': submitted = !!m.on; saveDraft(); render(); if (!submitted) toast('Cô cho bạn viết tiếp ✍️'); break;
-    case 'full': resetJoin('Phòng đã đủ người rồi 😢'); break;
-    case 'kick': try { localStorage.removeItem(draftKey()); } catch (e) {} resetJoin('Bạn đã được mời ra khỏi phòng.'); break;
+    case 'sub': submitted = !!m.on; saveDraft(); render(); if (!submitted) toast('Your teacher has reopened your text ✍️'); break;
+    case 'full': resetJoin('The room is full 😢'); break;
+    case 'kick': try { localStorage.removeItem(draftKey()); } catch (e) {} resetJoin('You have been removed from the room.'); break;
     case 'closed': closed = true; state.phase = 'end'; state.elapsed = nowElapsed(); stateAt = performance.now(); render(); break;
   }
 }
@@ -108,7 +108,7 @@ const canType = () => joined && state.phase === 'run' && !submitted && !timeLock
 function sync(s) {
   const el = $('#sSync');
   el.className = 'ssync ' + s;
-  el.textContent = s === 'saved' ? '✓ Cô đã nhận' : s === 'saving' ? '… đang gửi' : s === 'off' ? '⚠ chưa gửi được' : '';
+  el.textContent = s === 'saved' ? '✓ Saved' : s === 'saving' ? '… saving' : s === 'off' ? '⚠ not sent yet' : '';
 }
 function render() {
   if (!joined) return;
@@ -121,10 +121,10 @@ function render() {
   $('#unsubmit').hidden = !(submitted && state.phase === 'run' && !timeLocked && !closed);
   const n = $('#sNotice');
   n.className = 'snotice ' + (submitted ? 'done' : state.phase);
-  n.textContent = closed ? '🔒 Cô đã đóng phòng. Bài của bạn đã được lưu.'
-    : submitted ? '✔ Bạn đã nộp bài.' + (state.phase === 'run' ? ' Muốn sửa thì bấm "Viết tiếp".' : '')
-    : state.phase === 'wait' ? '⏳ Đọc đề trước nhé. Khi cô bấm bắt đầu, bạn mới gõ được.'
-    : state.phase === 'end' || timeLocked ? (timeLocked || (state.limit && state.limit - state.elapsed <= 0) ? '🔒 Hết giờ – bài đã khoá.' : '🔒 Cô đã khoá bài.') + (ta.value.trim() ? ' Bấm "Nộp bài" để xác nhận.' : '')
+  n.textContent = closed ? '🔒 The room is closed. Your text has been saved.'
+    : submitted ? '✔ You have submitted.' + (state.phase === 'run' ? ' Tap "Keep writing" if you want to edit.' : '')
+    : state.phase === 'wait' ? '⏳ Read the task first. You can start typing when your teacher starts the timer.'
+    : state.phase === 'end' || timeLocked ? (timeLocked || (state.limit && state.limit - state.elapsed <= 0) ? '🔒 Time is up – writing is locked.' : '🔒 Your teacher has locked the writing.') + (ta.value.trim() ? ' Tap "Submit" to confirm.' : '')
     : '';
   n.hidden = !n.textContent;
   drawTimer();
@@ -137,9 +137,9 @@ function drawTimer() {
     const rem = state.limit - el;
     if (rem <= 0 && state.lock && state.phase === 'run' && !timeLocked) { timeLocked = true; flush(); render(); return; }
     num = rem >= 0 ? fmt(Math.ceil(rem)) : '+' + fmt(-rem);
-    lab = rem < 0 ? 'quá giờ' : state.phase === 'wait' ? 'thời gian làm bài' : 'còn lại';
+    lab = rem < 0 ? 'overtime' : state.phase === 'wait' ? 'time allowed' : 'left';
     urgent = rem < 0 || (rem <= 60 && state.phase === 'run');
-  } else { num = fmt(el); lab = state.phase === 'wait' ? 'chưa bắt đầu' : 'đã viết'; }
+  } else { num = fmt(el); lab = state.phase === 'wait' ? 'not started' : 'elapsed'; }
   $('#sNum').textContent = num; $('#sLab').textContent = lab; T.classList.toggle('urgent', urgent);
 }
 setInterval(drawTimer, 500);
@@ -153,7 +153,7 @@ function flush() {
 }
 setInterval(() => { if (state.phase === 'run' || dirty) flush(); }, 1200);
 ta.addEventListener('paste', (e) => {
-  if (room && room.blockPaste) { e.preventDefault(); toast('Phòng này không cho dán – hãy tự gõ nhé ✍️'); }
+  if (room && room.blockPaste) { e.preventDefault(); toast('Pasting is not allowed in this room – please type it yourself ✍️'); }
   else { pastes++; dirty = true; saveDraft(); }
 });
 ta.addEventListener('drop', (e) => { if (room && room.blockPaste) e.preventDefault(); });
@@ -161,12 +161,12 @@ ta.addEventListener('drop', (e) => { if (room && room.blockPaste) e.preventDefau
 document.addEventListener('visibilitychange', () => { if (document.hidden && canType()) setTimeout(() => { if (document.hidden) { blurs++; dirty = true; saveDraft(); } }, 1000); });
 
 $('#submit').onclick = () => {
-  if (!ta.value.trim()) return toast('Bạn chưa viết gì cả');
+  if (!ta.value.trim()) return toast('You have not written anything yet');
   const w = countWords(ta.value);
-  const warn = room.minWords && w < room.minWords ? `Bài mới có ${w}/${room.minWords} từ. ` : '';
-  if (!confirm(warn + 'Nộp bài?')) return;
+  const warn = room.minWords && w < room.minWords ? `You have only written ${w}/${room.minWords} words. ` : '';
+  if (!confirm(warn + 'Submit your text?')) return;
   submitted = true; dirty = false; saveDraft();
-  if (online) net.send({ t: 'submit', v: ta.value, p: pastes, b: blurs }); else toast('Đang mất mạng – bài sẽ tự nộp khi có kết nối lại', 4000);
+  if (online) net.send({ t: 'submit', v: ta.value, p: pastes, b: blurs }); else toast('You are offline – your text will be submitted automatically when you reconnect', 4000);
   render();
 };
 $('#unsubmit').onclick = () => { if (online) net.send({ t: 'unsubmit' }); };

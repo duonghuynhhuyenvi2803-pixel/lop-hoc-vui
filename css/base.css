@@ -17,3 +17,6 @@ input, select, textarea { font-family: inherit; font-size: 17px; border: 2px sol
 input:focus, textarea:focus, select:focus { outline: 3px solid #ffd27a; border-color: var(--ink); }
 .opt-A { background: var(--red); } .opt-B { background: var(--blue); } .opt-C { background: var(--yellow); } .opt-D { background: var(--green); }
 [hidden] { display: none !important; }
+
+.back { display: inline-block; color: var(--ink); font-weight: 700; text-decoration: none; opacity: .7; }
+.back:hover { opacity: 1; }

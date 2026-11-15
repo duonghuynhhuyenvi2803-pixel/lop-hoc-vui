@@ -2,8 +2,8 @@
 export const SKIN = ['#FFE3CC', '#F7CBA4', '#E2AA7C', '#B97F55'];
 export const HAIR = ['#2B2118', '#5A3A22', '#A0582F', '#E7B44A', '#C0392B', '#6C5CE7', '#1F4E79', '#F28AB2'];
 export const SHIRT = ['#E74C3C', '#3498DB', '#27AE60', '#F39C12', '#8E44AD', '#16A085', '#E84393', '#2C3E50'];
-export const STYLES = ['Tóc ngắn', 'Tóc dài', 'Buộc 2 bên', 'Búi tóc', 'Tóc xù'];
-export const ACCS = ['Không', 'Kính', 'Nơ', 'Mũ lưỡi trai'];
+export const STYLES = ['Short hair', 'Long hair', 'Pigtails', 'Bun', 'Spiky hair'];
+export const ACCS = ['None', 'Glasses', 'Bow', 'Cap'];
 
 export function randomLook() {
   const r = (n) => Math.floor(Math.random() * n);

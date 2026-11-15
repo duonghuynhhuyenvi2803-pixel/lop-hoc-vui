@@ -1,3 +1,7 @@
+# 🏫 Lớp Học Vui – Teacher Dashboard
+
+`index.html` is the teacher dashboard: Quiz Classroom (`host.html`), Writing Room (`viet.html`), Red Light Green Light (`host.html#denxanh`). Students join with a QR code / PIN (`play.html`, `v.html`). All on-screen text is in English; quiz voice commentary can be English or Vietnamese.
+
 # 🏫 Lớp Học Vui
 
 Game đố vui cả lớp: màn hình giáo viên chiếu lên bảng (lớp học có bàn ghế, nhân vật), học sinh vào lớp bằng điện thoại (quét QR hoặc nhập PIN).

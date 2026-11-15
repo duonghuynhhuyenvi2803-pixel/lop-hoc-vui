@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lớp Học Vui – Màn hình giáo viên</title>
+<title>Quiz Classroom – Teacher screen</title>
 <link rel="stylesheet" href="css/base.css">
 <link rel="stylesheet" href="css/host.css">
 <link rel="stylesheet" href="css/denxanh.css">
@@ -15,59 +15,61 @@
 <!-- ============ CÀI ĐẶT ============ -->
 <section id="setup" class="setup">
   <header class="setup-head">
-    <h1>🏫 Lớp Học Vui</h1>
-    <p>Chuẩn bị bộ câu hỏi rồi mở lớp. Học sinh vào bằng QR hoặc mã PIN trên điện thoại.</p>
-    <button class="btn warn dx-open-btn" id="dxOpen1">🚦 Đèn Xanh – Đèn Đỏ: gọi ngẫu nhiên 1 bạn lên trả bài</button>
+    <a href="index.html" class="back">← Dashboard</a>
+    <h1>🏫 Quiz Classroom</h1>
+    <p>Prepare your questions, then open the class. Students join on their phones with the QR code or PIN.</p>
+    <button class="btn warn dx-open-btn" id="dxOpen1">🚦 Red Light, Green Light: pick a random student</button>
   </header>
   <div class="setup-grid">
     <div class="card">
-      <h2>⚙️ Thiết lập</h2>
-      <label>Tên lớp <input id="className" maxlength="40" placeholder="VD: 10A1 – Grammar Review"></label>
-      <label>Số câu mỗi session: <b id="nqLabel">20</b>
+      <h2>⚙️ Settings</h2>
+      <label>Class name <input id="className" maxlength="40" placeholder="e.g. 10A1 – Grammar Review"></label>
+      <label>Questions per session: <b id="nqLabel">20</b>
         <input id="nq" type="range" min="15" max="20" value="20"></label>
-      <label class="chk"><input id="shuffle" type="checkbox"> Xáo trộn thứ tự câu hỏi</label>
-      <label class="chk"><input id="tts" type="checkbox" checked> 🔊 Đọc to câu hỏi</label>
-      <label class="chk"><input id="readOpts" type="checkbox"> Đọc cả các lựa chọn A/B/C/D</label>
-      <label class="chk"><input id="waitRead" type="checkbox" checked> Đọc xong mới bắt đầu tính 20 giây</label>
-      <label>Giọng đọc <select id="voice"></select></label>
-      <label class="chk"><input id="autoNext" type="checkbox"> Tự chuyển câu sau 8 giây</label>
-      <label class="chk"><input id="commentary" type="checkbox" checked> 🎙️ Lồng tiếng bình luận (tiếng Việt)</label>
-      <label>Giọng bình luận <select id="viVoice"></select></label>
-      <div id="viWarn" class="viwarn" hidden>Máy này chưa có giọng tiếng Việt nên chỉ hiện chữ phụ đề. Mở trang bằng <b>Microsoft Edge</b> để có giọng HoaiMy/NamMinh đọc rất tự nhiên.</div>
-      <label class="chk"><input id="punish" type="checkbox" checked> 🙋 Sai 2 câu liên tiếp phải lên bảng đứng</label>
+      <label class="chk"><input id="shuffle" type="checkbox"> Shuffle question order</label>
+      <label class="chk"><input id="tts" type="checkbox" checked> 🔊 Read questions aloud</label>
+      <label class="chk"><input id="readOpts" type="checkbox"> Also read options A/B/C/D</label>
+      <label class="chk"><input id="waitRead" type="checkbox" checked> Start the 20-second timer after reading</label>
+      <label>Reading voice <select id="voice"></select></label>
+      <label class="chk"><input id="autoNext" type="checkbox"> Auto-advance after 8 seconds</label>
+      <label class="chk"><input id="commentary" type="checkbox" checked> 🎙️ Voice commentary</label>
+      <label>Commentary language <select id="cLang"><option value="en">English</option><option value="vi">Tiếng Việt</option></select></label>
+      <label id="viVoiceRow">Vietnamese voice <select id="viVoice"></select></label>
+      <div id="viWarn" class="viwarn" hidden>This browser has no Vietnamese voice, so commentary will show as subtitles only. Open this page in <b>Microsoft Edge</b> for natural Vietnamese voices (HoaiMy / NamMinh).</div>
+      <label class="chk"><input id="punish" type="checkbox" checked> 🙋 Two wrong answers in a row → stand at the board</label>
       <div class="rules">
-        <b>Luật điểm:</b> mỗi câu 20 giây. Bạn đúng <b>nhanh nhất</b> được điểm bằng <b>sĩ số lớp</b> (lớp 25 bạn → 25 điểm), bạn đúng thứ nhì 24, thứ ba 23… Sai / không trả lời = 0.
-        Sau mỗi câu cả lớp đổi chỗ: hạng 1 ngồi gần bàn giáo viên nhất, rồi lần lượt từ trái qua phải, từ trên xuống dưới.
-        Sai (hoặc bỏ trống) <b>2 câu liên tiếp</b> → lên bảng đứng, vẫn được trả lời tiếp; trả lời đúng là được về chỗ.
+        <b>Scoring:</b> 20 seconds per question. The <b>fastest</b> correct answer earns points equal to the <b>class size</b> (25 students → 25 points), the second fastest 24, the third 23… Wrong / no answer = 0.
+        After each question everyone changes seats: rank 1 sits closest to the teacher's desk, then left to right, front to back.
+        <b>Two wrong (or blank) answers in a row</b> → stand at the board, still answering; one correct answer sends you back to your seat.
       </div>
     </div>
     <div class="card qcard">
-      <h2>📝 Bộ câu hỏi <span id="qCount" class="pill">0 câu</span></h2>
+      <h2>📝 Question set <span id="qCount" class="pill">0 questions</span></h2>
       <div class="row">
-        <button class="btn ghost sm" id="loadSample">Dùng bộ mẫu</button>
-        <button class="btn ghost sm" id="openFile">Mở file .txt</button>
+        <button class="btn ghost sm" id="loadSample">Load sample</button>
+        <button class="btn ghost sm" id="openFile">Open .txt file</button>
         <input type="file" id="file" accept=".txt,.md,text/plain" hidden>
-        <button class="btn ghost sm" id="help">Cách viết?</button>
+        <button class="btn ghost sm" id="help">How to write?</button>
       </div>
-      <div class="row tpls">Thêm câu:
-        <button class="btn sm tpl" data-tpl="mc">🔤 Trắc nghiệm</button>
-        <button class="btn sm tpl" data-tpl="tf">⚖️ Đúng/Sai</button>
-        <button class="btn sm tpl" data-tpl="fill">✍️ Điền từ</button>
-        <button class="btn sm tpl" data-tpl="order">🧩 Sắp xếp câu</button>
-        <button class="btn sm tpl" data-tpl="error">🔍 Tìm lỗi sai</button>
-        <button class="btn sm tpl" data-tpl="listen">🎧 Nghe & chép</button>
+      <div class="row tpls">Add:
+        <button class="btn sm tpl" data-tpl="mc">🔤 Multiple choice</button>
+        <button class="btn sm tpl" data-tpl="tf">⚖️ True / False</button>
+        <button class="btn sm tpl" data-tpl="fill">✍️ Fill the gap</button>
+        <button class="btn sm tpl" data-tpl="order">🧩 Word order</button>
+        <button class="btn sm tpl" data-tpl="error">🔍 Find the mistake</button>
+        <button class="btn sm tpl" data-tpl="listen">🎧 Dictation</button>
       </div>
       <div id="helpBox" class="help" hidden>
-        Mỗi câu cách nhau <b>1 dòng trống</b>. Bấm các nút "Thêm câu" ở trên để chèn mẫu rồi sửa lại.
+        Separate questions with <b>one blank line</b>. Use the "Add" buttons above to insert a template, then edit it.
         <table>
-          <tr><td>🔤 Trắc nghiệm</td><td>Dòng đầu là câu hỏi, sau đó <code>A.</code> <code>B.</code>… Thêm <code>*</code> trước đáp án đúng.</td></tr>
-          <tr><td>⚖️ Đúng/Sai</td><td><code>[TF] câu nhận định</code> + dòng <code>Answer: True</code> / <code>False</code></td></tr>
-          <tr><td>✍️ Điền từ</td><td><code>[FILL] câu có ___</code> + dòng <code>Answer: since | for</code> (nhiều đáp án đúng thì ngăn bằng <code>|</code>)</td></tr>
-          <tr><td>🧩 Sắp xếp câu</td><td><code>[ORDER] câu đúng</code>, máy tự xáo. Muốn giữ cụm từ thì ngăn bằng <code> / </code></td></tr>
-          <tr><td>🔍 Tìm lỗi sai</td><td><code>[ERROR]</code> đặt 2–4 phần trong <code>[ ]</code>, phần sai thêm <code>*</code>: <code>[*have]</code></td></tr>
-          <tr><td>🎧 Nghe & chép</td><td><code>[LISTEN] câu sẽ được đọc</code>. Học sinh nghe rồi gõ lại.</td></tr>
+          <tr><td>🔤 Multiple choice</td><td>First line is the question, then <code>A.</code> <code>B.</code>… Put <code>*</code> before the correct option.</td></tr>
+          <tr><td>⚖️ True / False</td><td><code>[TF] statement</code> + a line <code>Answer: True</code> / <code>False</code></td></tr>
+          <tr><td>✍️ Fill the gap</td><td><code>[FILL] sentence with ___</code> + a line <code>Answer: since | for</code> (separate accepted answers with <code>|</code>)</td></tr>
+          <tr><td>🧩 Word order</td><td><code>[ORDER] the correct sentence</code> – it is shuffled automatically. To keep phrases together, separate chunks with <code> / </code></td></tr>
+          <tr><td>🔍 Find the mistake</td><td><code>[ERROR]</code> put 2–4 parts in <code>[ ]</code> and mark the wrong one with <code>*</code>: <code>[*have]</code></td></tr>
+          <tr><td>🎧 Dictation</td><td><code>[LISTEN] the sentence to be read</code>. Students listen and type it.</td></tr>
         </table>
-        Thêm dòng <code>Time: 30</code> nếu câu đó cần hơn 20 giây. Không phân biệt hoa/thường và dấu câu khi chấm phần gõ.
+        Add a line <code>Time: 30</code> if a question needs more than 20 seconds. Typed answers ignore capital letters and punctuation.
       </div>
       <textarea id="qtext" spellcheck="false" placeholder="She ___ to school every day.&#10;A. go&#10;*B. goes&#10;C. going&#10;D. gone"></textarea>
       <div id="qTypes" class="qtypes"></div>
@@ -75,7 +77,7 @@
     </div>
   </div>
   <div class="setup-foot">
-    <button class="btn go big" id="openClass">Mở lớp học →</button>
+    <button class="btn go big" id="openClass">Open class →</button>
   </div>
 </section>
 
@@ -85,7 +87,7 @@
     <div class="wall">
       <div class="clock-deco"></div>
       <div class="teacher-zone">
-        <div id="bubble" class="bubble">Chào cả lớp!</div>
+        <div id="bubble" class="bubble">Hello class!</div>
         <div id="teacher" class="teacher"></div>
         <div class="tdesk"></div>
       </div>
@@ -100,7 +102,7 @@
     </div>
     <div class="floor"></div>
     <div class="room" id="room">
-      <div class="front-spot" id="frontSpot">🙋 Khu đứng bảng</div>
+      <div class="front-spot" id="frontSpot">🙋</div>
       <div id="desks"></div>
       <div id="students"></div>
       <div id="labels"></div>
@@ -110,9 +112,9 @@
     <canvas id="confetti" width="1600" height="900"></canvas>
   </div>
   <div class="corner">
-    <button id="muteBtn" title="Tắt/bật âm thanh">🔊</button>
-    <button id="fsBtn" title="Toàn màn hình">⛶</button>
-    <button id="dxOpen2" title="Đèn xanh – đèn đỏ: gọi trả bài">🚦</button>
+    <button id="muteBtn" title="Mute / unmute">🔊</button>
+    <button id="fsBtn" title="Full screen">⛶</button>
+    <button id="dxOpen2" title="Red Light, Green Light">🚦</button>
   </div>
 </section>
 
