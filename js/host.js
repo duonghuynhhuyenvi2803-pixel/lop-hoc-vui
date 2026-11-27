@@ -3,6 +3,7 @@ import { avatarSVG, teacherSVG, randomLook, sanitizeLook } from './avatar.js';
 import { parseQuestions, SAMPLE, TEMPLATES, TYPES, speakText, isChoice, check, answerLabel, shuffleChunks, norm, paragraphs } from './questions.js';
 import * as S from './sound.js';
 import { openDenXanh } from './denxanh.js';
+import { autoFormat } from './autoformat.js';
 
 const MAX = 40, COLS = 8, ROWS = 5;
 const ROW_Y0 = 318, ROW_H = 116, PAIR_W = 330, GAP = 52;
@@ -185,6 +186,44 @@ $('#libFile').onchange = async (e) => {
 };
 $('#libName').oninput = libStatus;
 $('#qtext').addEventListener('input', libStatus);
+
+/* ---------- Tự nhận dạng bản nháp ---------- */
+let afRes = null;
+function afPreview() {
+  const raw = $('#afIn').value;
+  if (!raw.trim()) { afRes = null; $('#afList').innerHTML = '<div class="af-empty">The preview will appear here.</div>'; $('#afSum').innerHTML = ''; $('#afWarn').textContent = ''; return; }
+  afRes = autoFormat(raw);
+  const qs = afRes.report.filter((r) => r.kind === 'q');
+  const by = {}; qs.forEach((r) => (by[r.type] = (by[r.type] || 0) + 1));
+  const nWarn = qs.filter((r) => r.warn.length).length, nPass = afRes.report.filter((r) => r.kind === 'passage').length;
+  $('#afSum').innerHTML = `<span>${qs.length} questions</span>` + (nPass ? `<span>📖 ${nPass} passage${nPass > 1 ? 's' : ''}</span>` : '')
+    + Object.keys(by).map((k) => `<span class="${k === '?' ? 'bad' : ''}">${k === '?' ? '❓ Unknown' : TYPES[k].icon + ' ' + TYPES[k].name}: ${by[k]}</span>`).join('')
+    + (afRes.keySize ? `<span>🔑 answer key: ${afRes.keySize}</span>` : '');
+  $('#afList').innerHTML = afRes.report.map((r) => {
+    if (r.kind === 'instr') return `<div class="af-it instr">📌 ${esc(r.text)}</div>`;
+    if (r.kind === 'skip') return `<div class="af-it skip">skipped: ${esc(r.text.slice(0, 120))}</div>`;
+    if (r.kind === 'passage') return `<div class="af-it pass">📖 <b>Reading passage:</b>&nbsp;${esc(r.title)} · ${r.words} words</div>`;
+    const first = r.text.split('\n')[0].replace(/^\[[A-Z]+\]\s*/, '');
+    const ty = r.type === '?' ? '<span class="ty unk">❓ ?</span>' : `<span class="ty">${TYPES[r.type].icon} ${TYPES[r.type].name}</span>`;
+    return `<div class="af-it ${r.passage ? 'inp' : ''}"><span class="no">${r.no}.</span>${ty}<div class="tx"><div class="s">${esc(first)}</div>${r.warn.map((w) => `<div class="w">⚠ ${esc(w)}</div>`).join('')}</div></div>`;
+  }).join('') || '<div class="af-empty">No questions found.</div>';
+  $('#afWarn').textContent = nWarn ? `⚠ ${nWarn} question${nWarn > 1 ? 's' : ''} need checking – you can fix them after adding.` : '';
+}
+function afInsert(replace) {
+  if (!afRes || !afRes.report.some((r) => r.kind === 'q')) { alert('No questions found in the draft yet.'); return; }
+  const ta = $('#qtext'), cur = ta.value.replace(/\s+$/, '');
+  if (replace && cur && !confirm('Replace the whole current question set with this draft?')) return;
+  ta.value = replace || !cur ? afRes.text : cur + '\n\n' + afRes.text;
+  $('#af').hidden = true; validate(); ta.focus(); if (!replace) ta.scrollTop = ta.scrollHeight;
+  toast('✨ Added ' + afRes.report.filter((r) => r.kind === 'q').length + ' questions – check the red notes below the box, if any', 3500);
+}
+$('#afOpen').onclick = () => { $('#af').hidden = false; afPreview(); $('#afIn').focus(); };
+$('#afClose').onclick = () => ($('#af').hidden = true);
+$('#af').onclick = (e) => { if (e.target.id === 'af') $('#af').hidden = true; };
+let afT = null;
+$('#afIn').oninput = () => { clearTimeout(afT); afT = setTimeout(afPreview, 250); };
+$('#afAdd').onclick = () => afInsert(false);
+$('#afReplace').onclick = () => afInsert(true);
 
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();

@@ -64,6 +64,7 @@
         </div>
       </div>
       <div class="row">
+        <button class="btn go sm" id="afOpen">✨ Auto-format a draft</button>
         <button class="btn ghost sm" id="loadSample">Load sample</button>
         <button class="btn ghost sm" id="openFile">Open .txt file</button>
         <input type="file" id="file" accept=".txt,.md,text/plain" hidden>
@@ -101,6 +102,46 @@
     <button class="btn go big" id="openClass">Open class →</button>
   </div>
 </section>
+
+<!-- ============ TỰ NHẬN DẠNG BẢN NHÁP ============ -->
+<div id="af" class="af" hidden>
+  <div class="af-box">
+    <div class="af-head">
+      <h2>✨ Auto-format a draft</h2>
+      <p>Paste your worksheet or exam draft (from Word, PDF…). The app guesses the type of every question and turns it into the quiz format. Check the preview, then add it.</p>
+      <button class="btn ghost sm af-x" id="afClose">✕</button>
+    </div>
+    <div class="af-grid">
+      <div class="af-col">
+        <textarea id="afIn" spellcheck="false" placeholder="I. Choose the best answer.
+1. She ___ to school every day.
+A. go   B. goes   C. going   D. gone
+
+II. Write T or F.
+2. The sun rises in the west.
+
+III. Rearrange the words.
+3. going / where / you / are / ?
+
+Read the passage and answer the questions.
+(paste the passage here)
+4. ...
+
+ĐÁP ÁN: 1.B 2.F 3. Where are you going?"></textarea>
+        <div class="af-tips"><b>Works best when:</b> questions are numbered (1. / Câu 1:), options are A. B. C. D., each part has its instruction ("Choose…", "True or False", "Rearrange…", "Find the mistake", "Read the passage…"), and the answer key is at the end after <code>Đáp án</code> / <code>Answer key</code> (or mark the right option with <code>*</code>).</div>
+      </div>
+      <div class="af-col">
+        <div id="afSum" class="af-sum"></div>
+        <div id="afList" class="af-list"><div class="af-empty">The preview will appear here.</div></div>
+      </div>
+    </div>
+    <div class="af-foot">
+      <span id="afWarn"></span>
+      <button class="btn ghost" id="afReplace">Replace the question set</button>
+      <button class="btn go" id="afAdd">➕ Add to the question set</button>
+    </div>
+  </div>
+</div>
 
 <!-- ============ LỚP HỌC ============ -->
 <section id="game" hidden>
