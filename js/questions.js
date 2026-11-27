@@ -4,6 +4,7 @@
 //   [TF]          Đúng/Sai          → dòng "Answer: True" hoặc "Answer: False"
 //   [FILL]        Điền từ (gõ)      → dòng "Answer: since | for"  (nhiều đáp án chấp nhận, ngăn bằng |)
 //   [ORDER]       Sắp xếp từ        → viết câu ĐÚNG, máy tự xáo. Muốn ghép cụm thì ngăn bằng " / "
+//                                     (hoặc: các cụm bị xáo "go / I / to school" + dòng "Answer: I go to school.")
 //   [ERROR]       Tìm lỗi sai       → đặt 2–4 phần trong [ngoặc vuông], phần sai có dấu *
 //   [LISTEN]      Nghe và chép lại  → viết câu sẽ được đọc; học sinh gõ lại
 // Thêm dòng "Time: 30" nếu muốn câu đó dài hơn 20 giây.
@@ -255,11 +256,17 @@ function parseBlocks(text, passage, qn) {
     } else if (type === 'listen') {
       q.answers = [qtext].concat(ans ? ans.split('|').map((s) => s.trim()).filter(Boolean) : []);
     } else if (type === 'order') {
-      const chunks = qtext.includes(' / ') ? qtext.split(' / ').map((s) => s.trim()).filter(Boolean) : qtext.split(/\s+/);
+      // Có dòng "Answer:" → các cụm đang bị xáo, đáp án là câu đúng. Không có → câu viết sẵn đã đúng thứ tự.
+      const chunks = (ans ? qtext.includes('/') : qtext.includes(' / ')) ? qtext.split('/').map((s) => s.trim()).filter((s) => /[\p{L}\p{N}]/u.test(s)) : qtext.split(/\s+/);
       if (chunks.length < 3) return err('the sentence needs at least 3 words/chunks');
       if (chunks.length > 14) return err('the sentence is too long (max 14 words/chunks) – group words into chunks with " / "');
-      q.chunks = chunks; q.answers = [chunks.join(' ')];
-      q.text = chunks.join(' ');
+      if (ans) {
+        const wordsOf = (x) => norm(x).split(' ').filter(Boolean).sort().join(' ');
+        if (wordsOf(chunks.join(' ')) !== wordsOf(ans)) return err('the Answer sentence must use exactly the same words as the chunks');
+        const order = orderChunks(chunks, ans);
+        if (!order) return err('could not match the chunks to the Answer sentence');
+        q.chunks = order; q.answers = [ans]; q.text = ans;
+      } else { q.chunks = chunks; q.answers = [chunks.join(' ')]; q.text = chunks.join(' '); }
     } else if (type === 'error') {
       const segs = []; let last = 0, cIdx = -1;
       const re = /\[(\*)?([^\]]+?)\]/g; let mm;
@@ -279,6 +286,23 @@ function parseBlocks(text, passage, qn) {
     questions.push(q);
   });
   return { questions, errors, count: blocks.length };
+}
+
+// Xếp các cụm theo đúng thứ tự của câu đáp án (thử ghép tham lam từ trái sang phải, có quay lui)
+function orderChunks(chunks, ans) {
+  const target = norm(ans).split(' ').filter(Boolean), parts = chunks.map((c) => norm(c).split(' ').filter(Boolean));
+  const used = chunks.map(() => false), out = [];
+  const go = (pos) => {
+    if (pos === target.length) return out.length === chunks.length;
+    for (let i = 0; i < parts.length; i++) {
+      if (used[i] || !parts[i].length || parts[i].some((w, k) => target[pos + k] !== w)) continue;
+      used[i] = true; out.push(chunks[i]);
+      if (go(pos + parts[i].length)) return true;
+      used[i] = false; out.pop();
+    }
+    return false;
+  };
+  return go(0) ? out : null;
 }
 
 // Đoạn văn của bài đọc (tách bằng dòng trống)
