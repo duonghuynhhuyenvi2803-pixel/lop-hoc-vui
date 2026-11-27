@@ -84,7 +84,8 @@ function onMessage(m) {
   switch (m.t) {
     case 'welcome': {
       joined = true; netMsg(''); score = m.score; me.name = m.name; standing = !!m.standing; try { sessionStorage.setItem('lophoc-in', pin); } catch (e) {}
-      if (m.q) { showQuestion(m.q); if (m.remaining != null) openQ(m.remaining); if (m.answered != null) markPicked(m.answered); }
+      if (m.passage) showPassage({ p: m.passage, remaining: m.remaining, time: m.passage.time || m.remaining });
+      else if (m.q) { showQuestion(m.q); if (m.remaining != null) openQ(m.remaining); if (m.answered != null) markPicked(m.answered); }
       else waitScreen(m.phase === 'lobby' || m.phase === 'setup'
         ? `You are in seat <b>${m.seat}</b>`
         : `Current rank: <b>${m.rank}</b> · ${score} pts`, m.phase === 'lobby' ? 'Waiting for the teacher to start<span class="dots"></span>' : 'Waiting for the next question<span class="dots"></span>');
@@ -94,6 +95,8 @@ function onMessage(m) {
     case 'kick': resetJoin('You have been removed from the class.'); break;
     case 'lobby': score = 0; standing = false; waitScreen('A new session is about to start!', 'Waiting for the teacher to start<span class="dots"></span>'); break;
     case 'q': showQuestion(m.q); break;
+    case 'passage': showPassage(m); break;
+    case 'ptime': if (pass) startPassTimer(m.remaining, m.time); break;
     case 'open': if (cur && cur.i === m.i) openQ(m.remaining); break;
     case 'got': markPicked(m.v); break;
     case 'closed': if (cur && cur.i === m.i) { lockQ(); $('#qHint').textContent = 'Time is up! Look at the board for the answer 👀'; } break;
@@ -110,11 +113,47 @@ function waitScreen(info, msg) {
   show('sWait');
 }
 
+/* ---------- bài đọc ---------- */
+let pass = null;
+function passHTML(text) {
+  const ps = String(text || '').split(/\n\s*\n+/).map((p) => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
+  return ps.map((t, i) => `<p>${ps.length > 1 ? `<span class="pn">${i + 1}</span>` : ''}${esc(t)}</p>`).join('');
+}
+function showPassage(m) {
+  clearInterval(timerT); cur = null;
+  pass = { id: m.p.id };
+  $('#pNo').textContent = m.nq ? `📖 Reading · ${m.nq} question${m.nq > 1 ? 's' : ''} next` : '📖 Reading time';
+  $('#pScore').textContent = `⭐ ${score}`;
+  $('#pTitle').textContent = m.p.title;
+  $('#pText').innerHTML = passHTML(m.p.text);
+  show('sP');
+  startPassTimer(m.remaining ?? m.time, m.time);
+}
+function startPassTimer(remaining, total) {
+  const end = performance.now() + remaining * 1000;
+  clearInterval(timerT);
+  timerT = setInterval(() => {
+    const left = Math.max(0, end - performance.now());
+    $('#pfill').style.width = (100 * left / (total * 1000)) + '%';
+    if (left <= 0) clearInterval(timerT);
+  }, 200);
+}
+
 /* ---------- câu hỏi: nhiều dạng ---------- */
 const CHOICE = ['mc', 'tf', 'error'];
 function showQuestion(q) {
   cur = { i: q.i, type: q.type || 'mc', picked: null, open: false, time: q.time || 20, chunks: q.chunks || [], built: [] };
   clearInterval(timerT);
+  const qp = $('#qPass');
+  if (q.passage) {
+    if (qp.dataset.pid !== String(q.passage.id)) {
+      qp.open = false; qp.dataset.pid = q.passage.id;
+      qp.querySelector('summary').textContent = `📖 ${q.passage.title} – tap to read`;
+      qp.querySelector('.ptext').innerHTML = passHTML(q.passage.text);
+    }
+    qp.hidden = false;
+  } else { qp.hidden = true; qp.dataset.pid = ''; }
+  pass = null;
   $('#qNo').textContent = `Question ${q.i + 1}/${q.total}`;
   $('#qScore').textContent = `⭐ ${score}`;
   const qt = $('#qText'); qt.className = 'qtext';

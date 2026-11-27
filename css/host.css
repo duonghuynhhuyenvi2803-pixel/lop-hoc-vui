@@ -206,3 +206,31 @@ body.playing { background: #1d1a22; overflow: hidden; }
 @keyframes capin { from { opacity: 0; transform: translate(-50%, 16px); } }
 .viwarn { background: #ffe9d6; border-radius: 10px; padding: 8px 10px; font-size: 14px; margin: -2px 0 8px; }
 .dx-open-btn { margin: 0 0 16px; font-size: 18px; }
+
+/* đọc hiểu */
+.btn.tpl.rd { background: #e3f0ff; box-shadow: 0 3px 0 #a9c6ea; }
+.passage { position: absolute; left: 110px; top: 312px; width: 1380px; height: 572px; z-index: 400; background: #fffdf6; color: #2b2a26; border-radius: 18px;
+  box-shadow: 0 10px 0 rgba(0,0,0,.18), 0 0 0 10px rgba(255,255,255,.55); padding: 22px 34px 20px; display: flex; flex-direction: column; animation: pIn .35s ease-out; }
+@keyframes pIn { from { transform: translateY(40px); opacity: 0; } }
+.passage .p-head { display: flex; align-items: center; gap: 14px; font-family: 'Baloo 2'; font-weight: 800; font-size: 30px; color: #2f5d47; border-bottom: 3px dashed #e2d6bd; padding-bottom: 6px; margin-bottom: 12px; }
+.passage .p-head .p-t { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.passage .p-head .p-x { font-size: 18px; padding: 4px 14px; }
+.passage .p-body { flex: 1; overflow: auto; line-height: 1.5; column-gap: 46px; column-rule: 2px dotted #e2d6bd; }
+.passage .p-body.cols { column-count: 2; }
+.passage .p-body p { margin: 0 0 .65em; text-align: justify; break-inside: avoid-column; }
+.passage .p-body p .pn { display: inline-block; min-width: 1.5em; font-family: 'Baloo 2'; font-weight: 800; color: #b07a2a; }
+.b-q.passage-note { flex-direction: column; gap: 6px; }
+.b-q.passage-note small { font-size: 26px; opacity: .8; font-family: 'Baloo 2'; }
+.b-head .ptag { color: #ffe27a; }
+
+/* thư viện bài học */
+.lib { background: #f3f8ff; border: 2px solid #d3e3f7; border-radius: 14px; padding: 10px 12px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; }
+.lib-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.lib-pick { flex: 1; display: flex; align-items: center; gap: 8px; font-weight: 700; margin: 0; min-width: 260px; }
+.lib-pick select { flex: 1; min-width: 0; }
+#libName { flex: 1; min-width: 220px; }
+.lib-small { font-size: 14px; }
+.lib-small .sp { flex: 1; }
+#libStatus { color: #4a6b8a; font-weight: 600; }
+#libStatus.dirty { color: #c2410c; }
+.btn.xs { font-size: 13px; padding: 3px 10px; }
