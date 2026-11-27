@@ -7,6 +7,15 @@
 //   [ERROR]       Tìm lỗi sai       → đặt 2–4 phần trong [ngoặc vuông], phần sai có dấu *
 //   [LISTEN]      Nghe và chép lại  → viết câu sẽ được đọc; học sinh gõ lại
 // Thêm dòng "Time: 30" nếu muốn câu đó dài hơn 20 giây.
+//
+// ĐỌC HIỂU: dán bài đọc giữa [READING] và [QUESTIONS], các câu hỏi bên dưới thuộc bài đọc đó
+// (đến [END READING] hoặc [READING] tiếp theo). Bài đọc được phép có nhiều đoạn (dòng trống).
+//   [READING] Tiêu đề (không bắt buộc)
+//   Time: 120        ← thời gian đọc (giây), bỏ trống thì máy tự tính theo số từ
+//   ...bài đọc...
+//   [QUESTIONS]
+//   ...các câu hỏi như bình thường (mặc định 30 giây/câu)...
+//   [END READING]
 
 export const TYPES = {
   mc: { name: 'Multiple choice', icon: '🔤' },
@@ -32,6 +41,30 @@ export const TEMPLATES = {
   order: `[ORDER] Where are you going this weekend?`,
   error: `[ERROR] She [*have] lived [in] Hanoi [since] she [was] a child.`,
   listen: `[LISTEN] I usually walk to school.`,
+  reading: `[READING] A Day at the Floating Market
+Time: 90
+Every morning, long before sunrise, hundreds of small boats gather on the river near Cai Rang. Farmers bring pineapples, mangoes and watermelons from their gardens, and they hang a sample of what they sell on a tall pole so buyers can see it from far away.
+
+By seven o'clock the market is very busy. Tourists come to take photos and to eat a hot bowl of noodle soup cooked right on a boat. However, the market is getting smaller every year because more people now buy fruit in supermarkets.
+[QUESTIONS]
+Why do sellers hang fruit on a tall pole?
+A. To keep the fruit fresh
+*B. To show buyers what they sell
+C. To dry the fruit in the sun
+D. To decorate their boats
+
+[TF] The market is busiest in the evening.
+Answer: False
+
+[FILL] The market is getting smaller because people buy fruit in ___.
+Answer: supermarkets | supermarket
+
+In paragraph 2, the word "busy" is closest in meaning to ___.
+A. quiet
+*B. crowded
+C. tired
+D. expensive
+[END READING]`,
 };
 
 export const SAMPLE = `She ___ to school by bus every day.
@@ -124,12 +157,71 @@ export function norm(s) {
     .replace(/[.,!?;:"()]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+const R_START = /^\s*\[\s*(reading|passage|đọc hiểu|doc hieu|bài đọc)\s*\]\s*(.*)$/i;
+const R_QS = /^\s*\[\s*(questions|câu hỏi)\s*\]\s*$/i;
+const R_END = /^\s*\[\s*(end reading|end passage|end|\/reading|hết bài đọc)\s*\]\s*$/i;
+
+// Thời gian đọc tự động: ~2 từ/giây, tối thiểu 30s, tối đa 300s
+export function autoReadTime(text) {
+  const w = String(text).split(/\s+/).filter(Boolean).length;
+  return Math.max(30, Math.min(300, Math.round(w / 2 / 5) * 5 + 15));
+}
+
+// Tách văn bản thành các đoạn: câu hỏi thường / bài đọc + câu hỏi của bài đọc
+function splitReadings(text, errors) {
+  const lines = String(text || '').replace(/\r/g, '').split('\n');
+  const segs = [{ passage: null, lines: [] }];
+  let cur = null, pid = 0;               // cur = bài đọc đang nhập (chưa gặp [QUESTIONS])
+  const closePassage = () => {
+    if (!cur) return;
+    errors.push(`Reading "${cur.title}": add a line [QUESTIONS] after the passage, then the questions`);
+    cur = null; segs.push({ passage: null, lines: [] });
+  };
+  for (const line of lines) {
+    const ms = line.match(R_START);
+    if (ms) {
+      closePassage();
+      cur = { id: ++pid, title: ms[2].trim() || 'Reading', time: 0, body: [] };
+      continue;
+    }
+    if (cur) {
+      if (R_QS.test(line)) {
+        const textP = cur.body.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+        if (!textP) errors.push(`Reading "${cur.title}": the passage text is empty`);
+        const passage = { id: cur.id, title: cur.title, text: textP, time: cur.time || autoReadTime(textP) };
+        segs.push({ passage, lines: [] }); cur = null;
+        continue;
+      }
+      const t = cur.body.length === 0 || cur.body.every((l) => !l.trim()) ? line.match(TIME) : null;
+      if (t) { cur.time = Math.max(10, Math.min(600, +t[2])); continue; }
+      cur.body.push(line);
+      continue;
+    }
+    if (R_END.test(line)) { segs.push({ passage: null, lines: [] }); continue; }
+    segs[segs.length - 1].lines.push(line);
+  }
+  closePassage();
+  return segs;
+}
+
 export function parseQuestions(text) {
-  const blocks = String(text || '').replace(/\r/g, '').split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
+  const questions = [], errors = [];
+  let qn = 0;
+  for (const seg of splitReadings(text, errors)) {
+    const r = parseBlocks(seg.lines.join('\n'), seg.passage, qn);
+    if (seg.passage && !r.questions.length && !r.errors.length) errors.push(`Reading "${seg.passage.title}" has no questions`);
+    questions.push(...r.questions); errors.push(...r.errors); qn += r.count;
+  }
+  const passages = [...new Set(questions.map((q) => q.passage).filter(Boolean))];
+  return { questions, errors, passages };
+}
+
+function parseBlocks(text, passage, qn) {
+  const blocks = String(text || '').split(/\n\s*\n+/).map((b) => b.trim()).filter(Boolean);
   const questions = [], errors = [];
   blocks.forEach((b, bi) => {
     const lines = b.split('\n').map((l) => l.trim()).filter(Boolean);
-    let type = 'mc', time = 20, ans = null;
+    let type = 'mc', time = passage ? 30 : 20, ans = null;
     const tm = lines[0].match(TAG);
     if (tm && TAGS[tm[1].trim().toLowerCase()]) { type = TAGS[tm[1].trim().toLowerCase()]; lines[0] = lines[0].replace(TAG, ''); }
     const qLines = [], options = [];
@@ -142,9 +234,10 @@ export function parseQuestions(text) {
       else if (options.length === 0) qLines.push(line.replace(/^\s*(câu|question|q)?\s*\d+\s*[\.\):]\s*/i, ''));
     }
     const qtext = qLines.join(' ').trim();
-    const err = (s) => errors.push(`Question ${bi + 1} (${TYPES[type].name}): ${s}`);
+    const err = (s) => errors.push(`Question ${qn + bi + 1}${passage ? ` (reading "${passage.title}")` : ''} (${TYPES[type].name}): ${s}`);
     if (!qtext) return err('the question text is missing');
     const q = { type, text: qtext, time };
+    if (passage) q.passage = passage;
     if (type === 'mc') {
       if (ans && correct < 0) correct = 'abcd'.indexOf(ans.trim().toLowerCase()[0]);
       if (options.length < 2) return err('needs at least 2 options A/B/…');
@@ -185,7 +278,12 @@ export function parseQuestions(text) {
     }
     questions.push(q);
   });
-  return { questions, errors };
+  return { questions, errors, count: blocks.length };
+}
+
+// Đoạn văn của bài đọc (tách bằng dòng trống)
+export function paragraphs(text) {
+  return String(text || '').split(/\n\s*\n+/).map((p) => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean);
 }
 
 export function isChoice(q) { return q.type === 'mc' || q.type === 'tf' || q.type === 'error'; }

@@ -14,6 +14,8 @@ Game đố vui cả lớp: màn hình giáo viên chiếu lên bảng (lớp h�
 - Sai (hoặc bỏ trống) **2 câu liên tiếp** → lên bảng đứng, vẫn trả lời tiếp; đúng là về chỗ.
 - Sau mỗi câu có **bảng tốc độ**: ai trả lời lúc mấy giây, đúng/sai, được bao nhiêu điểm.
 - 6 dạng bài: trắc nghiệm, đúng/sai, điền từ, sắp xếp câu, tìm lỗi sai, nghe & chép.
+- **Đọc hiểu**: dán bài đọc giữa `[READING] Tiêu đề` và `[QUESTIONS]`, viết câu hỏi bên dưới, kết thúc bằng `[END READING]`. Lớp có "giờ đọc" (đếm ngược, bài đọc chiếu lên màn hình + hiện trên điện thoại), rồi mới vào câu hỏi (30 giây/câu). Học sinh mở lại bài đọc trên điện thoại khi trả lời; giáo viên bấm "📖 Show passage" để chiếu lại.
+- **Thư viện bài học** (📚 My lessons): đặt tên bài → 💾 Save lesson; lúc dạy chỉ cần chọn bài trong danh sách rồi mở lớp. Bài được lưu trên trình duyệt của máy đang dùng — bấm "⬇ Back up all" để tải file sao lưu, "⬆ Restore" để nạp sang máy khác.
 - Mỗi session **15–20 câu**, kết thúc bằng lễ **vinh danh top 3** (bục podium, nhạc, pháo giấy) + tải bảng điểm CSV.
 
 ## 🚦 Đèn Xanh – Đèn Đỏ (gọi trả bài)

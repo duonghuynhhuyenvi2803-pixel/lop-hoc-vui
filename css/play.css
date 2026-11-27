@@ -76,3 +76,15 @@ label input { display: block; width: 100%; margin-top: 4px; font-size: 22px; fon
 @keyframes pulse { to { transform: scale(1.03); } }
 .rstand { background: #fff3c4; color: var(--ink); font-weight: 800; border-radius: 14px; padding: 8px 14px; margin-bottom: 12px; font-size: 18px; }
 .rstand.back { background: #d4ffe3; }
+
+/* đọc hiểu */
+#pfill { height: 100%; width: 100%; background: #8fd3ff; border-radius: 99px; }
+.pbox { background: #fffdf6; color: var(--ink); border-radius: 16px; padding: 14px 16px; flex: 1; overflow: auto; }
+.ptitle { font-size: 22px; font-weight: 800; color: #2f5d47; margin-bottom: 6px; }
+.ptext { font-size: 17px; line-height: 1.55; }
+.ptext p { margin: 0 0 .7em; }
+.ptext .pn { display: inline-block; min-width: 1.4em; font-weight: 800; color: #b07a2a; }
+.qpass { background: #fffdf6; color: var(--ink); border-radius: 14px; padding: 0 12px; }
+.qpass summary { font-weight: 800; padding: 9px 0; cursor: pointer; color: #2f5d47; }
+.qpass[open] { padding-bottom: 10px; }
+.qpass .ptext { max-height: 42vh; overflow: auto; font-size: 16px; border-top: 2px dashed #e2d6bd; padding-top: 8px; }

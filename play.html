@@ -33,11 +33,20 @@
     <div id="wMsg" class="wmsg"></div>
   </section>
 
+  <!-- Bài đọc -->
+  <section id="sP" class="screen q" hidden>
+    <div class="qtop"><span id="pNo">📖 Reading time</span><span id="pScore"></span></div>
+    <div class="tbar"><div id="pfill"></div></div>
+    <div class="pbox"><div class="ptitle" id="pTitle"></div><div class="ptext" id="pText"></div></div>
+    <div class="qhint" id="pHint">Read carefully – questions are coming!</div>
+  </section>
+
   <!-- Câu hỏi -->
   <section id="sQ" class="screen q" hidden>
     <div class="qtop"><span id="qNo"></span><span id="qScore"></span></div>
     <div class="tbar"><div id="tfill"></div></div>
     <div id="standBar" class="standbar" hidden>🙋 You are standing at the board – answer correctly to go back to your seat!</div>
+    <details id="qPass" class="qpass" hidden><summary></summary><div class="ptext"></div></details>
     <div id="qText" class="qtext"></div>
     <div id="qHint" class="qhint"></div>
     <div id="opts" class="opts"></div>

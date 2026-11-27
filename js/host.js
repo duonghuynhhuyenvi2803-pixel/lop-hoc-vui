@@ -1,6 +1,6 @@
 import { createHost, IS_LOCAL } from './net.js';
 import { avatarSVG, teacherSVG, randomLook, sanitizeLook } from './avatar.js';
-import { parseQuestions, SAMPLE, TEMPLATES, TYPES, speakText, isChoice, check, answerLabel, shuffleChunks, norm } from './questions.js';
+import { parseQuestions, SAMPLE, TEMPLATES, TYPES, speakText, isChoice, check, answerLabel, shuffleChunks, norm, paragraphs } from './questions.js';
 import * as S from './sound.js';
 import { openDenXanh } from './denxanh.js';
 
@@ -45,7 +45,8 @@ function loadSetup() {
   st.savedViVoice = saved.viVoice || '';
   $('#waitRead').checked = saved.waitRead !== false;
   $('#autoNext').checked = !!saved.autoNext;
-  $('#qtext').value = saved.qtext || SAMPLE;
+  $('#qtext').value = saved.qtext ?? SAMPLE;
+  st.lessonId = saved.lessonId || ''; $('#libName').value = saved.lessonName || '';
   st.savedVoice = saved.voice || '';
   $('#nqLabel').textContent = $('#nq').value;
   validate();
@@ -56,17 +57,20 @@ function readSetup() {
     tts: $('#tts').checked, readOpts: $('#readOpts').checked, waitRead: $('#waitRead').checked,
     autoNext: $('#autoNext').checked, voice: $('#voice').value, qtext: $('#qtext').value,
     commentary: $('#commentary').checked, cLang: $('#cLang').value, punish: $('#punish').checked, viVoice: $('#viVoice').value,
+    lessonId: st.lessonId, lessonName: $('#libName').value,
   };
   try { localStorage.setItem(LS, JSON.stringify(s)); } catch (e) {}
   return s;
 }
 function validate() {
-  const { questions, errors } = parseQuestions($('#qtext').value);
+  const { questions, errors, passages } = parseQuestions($('#qtext').value);
   $('#qCount').textContent = questions.length + (questions.length === 1 ? ' question' : ' questions');
   const by = {}; questions.forEach((q) => (by[q.type] = (by[q.type] || 0) + 1));
-  $('#qTypes').innerHTML = Object.keys(TYPES).filter((k) => by[k]).map((k) => `<span>${TYPES[k].icon} ${TYPES[k].name}: <b>${by[k]}</b></span>`).join('');
+  $('#qTypes').innerHTML = (passages.length ? `<span>📖 Reading passages: <b>${passages.length}</b> (${questions.filter((q) => q.passage).length} questions)</span>` : '')
+    + Object.keys(TYPES).filter((k) => by[k]).map((k) => `<span>${TYPES[k].icon} ${TYPES[k].name}: <b>${by[k]}</b></span>`).join('');
   $('#qCount').style.background = questions.length ? '' : 'var(--red)';
   $('#qErrors').innerHTML = errors.slice(0, 8).map(esc).join('<br>') + (errors.length > 8 ? `<br>… and ${errors.length - 8} more` : '');
+  try { libStatus(); } catch (e) {}
   return questions;
 }
 function loadVoices() {
@@ -96,10 +100,95 @@ document.querySelectorAll('[data-tpl]').forEach((b) => (b.onclick = () => {
 }));
 $('#help').onclick = () => ($('#helpBox').hidden = !$('#helpBox').hidden);
 $('#openFile').onclick = () => $('#file').click();
-$('#file').onchange = async (e) => { const f = e.target.files[0]; if (f) { $('#qtext').value = await f.text(); validate(); } };
+$('#file').onchange = async (e) => { const f = e.target.files[0]; if (f) { $('#qtext').value = await f.text(); if (!$('#libName').value.trim()) $('#libName').value = f.name.replace(/\.[^.]+$/, ''); validate(); libStatus(); } };
+/* ---------- Thư viện bài học (lưu trên trình duyệt này) ---------- */
+const LIB = 'lophocvui-lessons';
+const lib = {
+  all() { try { const a = JSON.parse(localStorage.getItem(LIB) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } },
+  put(list) { localStorage.setItem(LIB, JSON.stringify(list)); },
+  get(id) { return this.all().find((l) => l.id === id); },
+};
+st.lessonId = '';
+function qCountOf(text) { return parseQuestions(text).questions.length; }
+function renderLib() {
+  const list = lib.all().sort((a, b) => a.name.localeCompare(b.name, 'vi', { numeric: true }));
+  $('#libSel').innerHTML = `<option value="">${list.length ? '— Choose a saved lesson (' + list.length + ') —' : '— No saved lessons yet —'}</option>`
+    + list.map((l) => `<option value="${esc(l.id)}">${esc(l.name)} · ${qCountOf(l.qtext)} q</option>`).join('');
+  $('#libSel').value = st.lessonId && lib.get(st.lessonId) ? st.lessonId : '';
+  if (!$('#libSel').value) st.lessonId = '';
+  $('#libDel').disabled = !st.lessonId;
+  libStatus();
+}
+function libStatus() {
+  const l = st.lessonId && lib.get(st.lessonId), el = $('#libStatus');
+  const dirty = l ? l.qtext !== $('#qtext').value || l.name !== $('#libName').value.trim() : !!$('#qtext').value.trim();
+  el.classList.toggle('dirty', dirty);
+  el.textContent = l ? (dirty ? '● Unsaved changes' : `✓ Saved ${new Date(l.updated).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}`)
+    : (dirty ? '● Not saved as a lesson yet' : '');
+  return dirty;
+}
+function confirmLeave() { return !libStatus() || confirm('This question set has unsaved changes. Discard them?'); }
+$('#libSel').onchange = () => {
+  const id = $('#libSel').value;
+  if (!confirmLeave()) { $('#libSel').value = st.lessonId; return; }
+  const l = id && lib.get(id);
+  st.lessonId = l ? id : '';
+  if (l) { $('#qtext').value = l.qtext; $('#libName').value = l.name; validate(); }
+  renderLib(); readSetup();
+};
+$('#libNew').onclick = () => {
+  if (!confirmLeave()) return;
+  st.lessonId = ''; $('#libName').value = ''; $('#qtext').value = ''; validate(); renderLib(); readSetup(); $('#libName').focus();
+};
+$('#libSave').onclick = () => {
+  const name = $('#libName').value.trim();
+  if (!name) { $('#libName').focus(); alert('Give the lesson a name first (e.g. "Unit 3 – Reading").'); return; }
+  const qtext = $('#qtext').value;
+  if (!qtext.trim()) { alert('The question set is empty.'); return; }
+  const list = lib.all();
+  let l = st.lessonId && list.find((x) => x.id === st.lessonId);
+  const same = list.find((x) => x.name.toLowerCase() === name.toLowerCase() && x !== l);
+  if (same) {
+    if (!confirm(`A lesson called "${same.name}" already exists. Overwrite it?`)) return;
+    l = same;
+  } else if (l && l.name !== name && !confirm(`Rename "${l.name}" to "${name}"?\n\nOK = rename this lesson · Cancel = save as a new lesson`)) l = null;
+  if (!l) { l = { id: 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), created: Date.now() }; list.push(l); }
+  Object.assign(l, { name, qtext, updated: Date.now() });
+  try { lib.put(list); } catch (e) { alert('Could not save (browser storage is full?). Use "Back up all" to keep a copy.'); return; }
+  st.lessonId = l.id; renderLib(); readSetup(); toast('💾 Saved "' + name + '"', 1800);
+};
+$('#libDel').onclick = () => {
+  const l = st.lessonId && lib.get(st.lessonId); if (!l) return;
+  if (!confirm(`Delete the lesson "${l.name}"? This cannot be undone.`)) return;
+  lib.put(lib.all().filter((x) => x.id !== l.id)); st.lessonId = ''; renderLib(); readSetup();
+};
+$('#libExport').onclick = () => {
+  const list = lib.all(); if (!list.length) { alert('There are no saved lessons yet.'); return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'lop-hoc-vui', v: 1, lessons: list }, null, 1)], { type: 'application/json' }));
+  a.download = `lop-hoc-vui-lessons-${new Date().toISOString().slice(0, 10)}.json`; a.click();
+};
+$('#libImport').onclick = () => $('#libFile').click();
+$('#libFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let inc;
+  try { const d = JSON.parse(await f.text()); inc = (Array.isArray(d) ? d : d.lessons || []).filter((l) => l && typeof l.name === 'string' && typeof l.qtext === 'string'); }
+  catch (err) { alert('This is not a lessons backup file.'); return; }
+  if (!inc.length) { alert('No lessons found in this file.'); return; }
+  const list = lib.all(); let added = 0, updated = 0;
+  inc.forEach((l) => {
+    const ex = list.find((x) => x.id === l.id) || list.find((x) => x.name.toLowerCase() === l.name.toLowerCase());
+    if (ex) { if ((l.updated || 0) >= (ex.updated || 0)) { Object.assign(ex, { name: l.name, qtext: l.qtext, updated: l.updated || Date.now() }); updated++; } }
+    else { list.push({ id: l.id || 'L' + Math.random().toString(36).slice(2, 10), name: l.name, qtext: l.qtext, created: l.created || Date.now(), updated: l.updated || Date.now() }); added++; }
+  });
+  lib.put(list); renderLib(); alert(`Restored: ${added} new lesson(s), ${updated} updated.`);
+};
+$('#libName').oninput = libStatus;
+$('#qtext').addEventListener('input', libStatus);
+
 if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = loadVoices;
 loadVoices();
-loadSetup(); syncLangUI();
+loadSetup(); syncLangUI(); renderLib();
 
 $('#openClass').onclick = async () => {
   const qs = validate();
@@ -250,7 +339,10 @@ function handleJoin(key, m) {
 function welcomeMsg(p) {
   const q = st.session[st.qi];
   const base = { t: 'welcome', name: p.name, seat: PRESTIGE.indexOf(p.seat) + 1, score: p.score, rank: p.rank, n: st.players.size, phase: st.phase, cls: st.settings.className, standing: !!p.standing };
-  if (q && (st.phase === 'reading' || st.phase === 'question')) {
+  if (q && st.phase === 'passage') {
+    base.passage = { ...passageMsg(q.passage), time: st.passageTotal };
+    base.remaining = Math.max(0, (st.passageEnd - performance.now()) / 1000);
+  } else if (q && (st.phase === 'reading' || st.phase === 'question')) {
     base.q = qMsg();
     if (st.phase === 'question') base.remaining = Math.max(0, st.qtime - (performance.now() - st.t0) / 1000);
     base.answered = p.answer ? p.answer.v : null;
@@ -327,12 +419,18 @@ function renderControls() {
     const b = btn('▶ Start', 'go', startSession); b.disabled = st.players.size === 0;
     btn('+5 test bots', 'tiny', () => addBots(5));
     if ([...st.players.values()].some((p) => p.bot)) btn('Remove bots', 'tiny', removeBots);
+  } else if (st.phase === 'passage') {
+    btn('▶ Start questions', 'go', endPassage);
+    btn('🔊 Read passage aloud', 'tiny', () => { const q = st.session[st.qi]; speak(q.passage.title + '. ' + paragraphs(q.passage.text).join(' '), true); });
+    btn('⏸ More time +30s', 'tiny', () => { st.passageEnd += 30000; st.passageTotal += 30; });
   } else if (st.phase === 'reading' || st.phase === 'question') {
-    { const q = st.session[st.qi]; if (q.type !== 'order') btn('🔊 Read again', 'tiny', () => speak(speakText(q, st.settings.readOpts), q.type === 'listen')); }
+    { const q = st.session[st.qi]; if (q.type !== 'order') btn('🔊 Read again', 'tiny', () => speak(speakText(q, st.settings.readOpts), q.type === 'listen'));
+      if (q.passage) btn($('#passage').hidden ? '📖 Show passage' : '📖 Hide passage', 'tiny', () => { togglePassage(q.passage, $('#passage').hidden); renderControls(); }); }
     btn('⏭ Close answers', 'tiny', closeQuestion);
   } else if (st.phase === 'reveal') {
     const last = st.qi >= st.session.length - 1;
     btn(last ? '🏆 Awards' : 'Next ▶', 'go', next);
+    { const q = st.session[st.qi]; if (q.passage) btn($('#passage').hidden ? '📖 Show passage' : '📖 Hide passage', 'tiny', () => { togglePassage(q.passage, $('#passage').hidden); renderControls(); }); }
     if (st.lastInfo) btn(st.boardView === 'speed' ? '📋 Show answer' : '⏱ Who was fastest?', 'tiny', () => showSpeed(st.boardView !== 'speed'));
   }
 }
@@ -345,11 +443,22 @@ function removeBots() {
 function startSession() {
   if (!st.players.size) return;
   S.unlock();
+  // Câu hỏi của cùng một bài đọc luôn đi liền nhau (không bị xáo/cắt rời)
   const n = Math.min(st.settings.nq, st.bank.length);
-  let pool = st.bank.slice();
-  if (st.settings.shuffle) pool.sort(() => Math.random() - 0.5);
-  else { pool = pool.slice(st.bankPos).concat(pool.slice(0, st.bankPos)); st.bankPos = (st.bankPos + n) % st.bank.length; }
-  st.session = pool.slice(0, n);
+  const units = [];
+  st.bank.forEach((q) => { const u = units[units.length - 1]; if (q.passage && u && u[0].passage === q.passage) u.push(q); else units.push([q]); });
+  let order = units.map((_, i) => i);
+  if (st.settings.shuffle) for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  else { const k = st.bankPos % units.length; order = order.slice(k).concat(order.slice(0, k)); }
+  const session = []; let used = 0;
+  for (const idx of order) {
+    const u = units[idx];
+    if (session.length && session.length + u.length > n) { if (st.settings.shuffle) continue; break; }
+    session.push(...u); used++;
+    if (session.length >= n) break;
+  }
+  if (!st.settings.shuffle) st.bankPos = (st.bankPos % units.length + used) % units.length;
+  st.session = session;
   st.qi = -1;
   st.players.forEach((p) => { p.score = 0; p.standing = false; p.wrongStreak = 0; });
   st.standOrder = []; st.leaderCid = null;
@@ -361,6 +470,13 @@ function next() {
   if (st.qi >= st.session.length - 1) return showPodium();
   st.qi++;
   const q = st.session[st.qi];
+  const prevQ = st.session[st.qi - 1];
+  if (q.passage && (!prevQ || prevQ.passage !== q.passage)) return startPassage(q);
+  if (!q.passage) togglePassage(null, false);
+  showQuestion();
+}
+function showQuestion() {
+  const q = st.session[st.qi];
   st.qtime = q.time || 20;
   if (q.type === 'order') q.shuffled = shuffleChunks(q.chunks);
   st.phase = 'reading';
@@ -369,7 +485,8 @@ function next() {
   timerSet(st.qtime, st.qtime); $('#timer').classList.remove('idle', 'urgent');
   renderControls();
   broadcast({ t: 'q', q: qMsg() });
-  const pre = st.qi === 0 ? (VI() ? pick(['Bắt đầu nào! Câu hỏi đầu tiên.', 'Cả lớp sẵn sàng chưa? Vào câu đầu tiên nhé!']) : pick(["Let's begin! Here is the first question.", 'Is everybody ready? Question number one!']))
+  const firstOfPassage = q.passage && (st.qi === 0 || st.session[st.qi - 1].passage !== q.passage);
+  const pre = firstOfPassage ? (VI() ? 'Hết giờ đọc! Vào câu hỏi nào.' : "Time's up for reading! Here comes the first question.") : st.qi === 0 ? (VI() ? pick(['Bắt đầu nào! Câu hỏi đầu tiên.', 'Cả lớp sẵn sàng chưa? Vào câu đầu tiên nhé!']) : pick(["Let's begin! Here is the first question.", 'Is everybody ready? Question number one!']))
     : st.qi === st.session.length - 1 ? (VI() ? 'Câu hỏi cuối cùng! Cố lên nào!' : 'This is the final question! Do your best!') : '';
   const qi0 = st.qi;
   (pre ? commentate(pre) : Promise.resolve()).then(() => { if (st.qi === qi0 && st.phase === 'reading') readQuestion(q); });
@@ -385,6 +502,7 @@ function readQuestion(q) {
 function qMsg() {
   const q = st.session[st.qi];
   const m = { i: st.qi, total: st.session.length, type: q.type, time: st.qtime };
+  if (q.passage) m.passage = passageMsg(q.passage);
   if (q.type === 'listen') return m;                 // không lộ câu
   m.text = q.type === 'order' ? '' : q.text;
   if (isChoice(q)) m.options = q.options;
@@ -395,7 +513,7 @@ function qMsg() {
 function renderBoard(reveal, info) {
   const q = st.session[st.qi];
   const T = TYPES[q.type];
-  const head = `<div class="b-head"><span>Question ${st.qi + 1}/${st.session.length} · ${T.icon} ${T.name}</span><span>${esc(st.settings.className || '')}</span></div>`;
+  const head = `<div class="b-head"><span>Question ${st.qi + 1}/${st.session.length} · ${T.icon} ${T.name}</span><span>${q.passage ? `<span class="ptag">📖 ${esc(q.passage.title)}</span>` : esc(st.settings.className || '')}</span></div>`;
   const size = (s) => (s.length < 60 ? 46 : s.length < 110 ? 36 : s.length < 170 ? 29 : 23);
   const ofs = (o) => (o.length < 22 ? 27 : o.length < 40 ? 22 : 17);
   let body = '';
@@ -641,9 +759,57 @@ function commentate(lines, { interrupt = true } = {}) {
   });
 }
 
+/* ================= ĐỌC HIỂU ================= */
+function passageMsg(p) { return { id: p.id, title: p.title, text: p.text }; }
+function togglePassage(p, on) {
+  const el = $('#passage');
+  if (!on || !p) { el.hidden = true; el.dataset.pid = ''; return; }
+  if (el.dataset.pid !== String(p.id)) {
+    const paras = paragraphs(p.text), len = p.text.length;
+    const fs = len < 700 ? 30 : len < 1300 ? 26 : len < 2200 ? 22 : len < 3200 ? 19 : 17;
+    el.innerHTML = `<div class="p-head">📖 <span class="p-t">${esc(p.title)}</span><button class="btn tiny p-x">✕ Hide</button></div>
+      <div class="p-body ${len > 900 ? 'cols' : ''}" style="font-size:${fs}px">${paras.map((t, i) => `<p>${paras.length > 1 ? `<span class="pn">${i + 1}</span>` : ''}${esc(t)}</p>`).join('')}</div>`;
+    el.querySelector('.p-x').onclick = () => { togglePassage(null, false); renderControls(); };
+    el.dataset.pid = p.id;
+  }
+  el.hidden = false;
+}
+function startPassage(q) {
+  const p = q.passage;
+  st.phase = 'passage';
+  st.players.forEach((pl) => { pl.answer = null; pl.gain = 0; setMark(pl, null); setMood(pl, 'think'); });
+  togglePassage(p, true);
+  const nq = st.session.filter((x) => x.passage === p).length;
+  $('#board').className = 'board t-passage';
+  $('#board').innerHTML = `<div class="b-head"><span>📖 Reading time · Questions ${st.qi + 1}–${st.qi + nq} of ${st.session.length}</span><span>${esc(st.settings.className || '')}</span></div>
+    <div class="b-q passage-note" style="font-size:46px">${esc(p.title)}<small>Read the passage carefully – it's also on your phone. ${nq} question${nq > 1 ? 's' : ''} coming up!</small></div>`;
+  st.t0 = performance.now(); st.passageTotal = p.time; st.passageEnd = st.t0 + p.time * 1000;
+  $('#timer').classList.remove('idle', 'urgent'); timerSet(p.time, p.time);
+  say('📖 Reading time!');
+  renderControls();
+  broadcast({ t: 'passage', p: passageMsg(p), time: p.time, remaining: p.time, i: st.qi, total: st.session.length, nq });
+  commentate(VI() ? `Giờ đọc hiểu! Các em có ${p.time} giây để đọc bài.` : `Reading time! You have ${p.time} seconds to read the passage.`);
+  let lastSec = p.time;
+  clearInterval(st.timerInt);
+  st.timerInt = setInterval(() => {
+    const left = (st.passageEnd - performance.now()) / 1000;
+    timerSet(Math.max(0, left), st.passageTotal);
+    const sec = Math.ceil(left);
+    if (sec !== lastSec) { if (sec > lastSec) broadcast({ t: 'ptime', remaining: left, time: st.passageTotal }); lastSec = sec; if (sec <= 5 && sec > 0) S.tick(true); }
+    if (left <= 0) endPassage();
+  }, 100);
+}
+function endPassage() {
+  if (st.phase !== 'passage') return;
+  clearInterval(st.timerInt);
+  try { speechSynthesis.cancel(); } catch (e) {}
+  togglePassage(null, false);
+  showQuestion();
+}
+
 /* ================= VINH DANH ================= */
 function showPodium() {
-  st.phase = 'podium'; st.sessionNo++;
+  st.phase = 'podium'; st.sessionNo++; togglePassage(null, false);
   clearTimeout(st.autoT); renderControls();
   const list = [...st.players.values()].sort((a, b) => a.rank - b.rank);
   const top = list.slice(0, 3);
@@ -703,7 +869,7 @@ addEventListener('keydown', (e) => {
   if (st.phase === 'setup' || /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) return;
   if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'Enter') {
     e.preventDefault();
-    if (st.phase === 'lobby') startSession(); else if (st.phase === 'reveal') next();
+    if (st.phase === 'lobby') startSession(); else if (st.phase === 'reveal') next(); else if (st.phase === 'passage') endPassage();
   }
 });
 $('#muteBtn').onclick = () => { S.setMuted(!S.muted); $('#muteBtn').textContent = S.muted ? '🔇' : '🔊'; };

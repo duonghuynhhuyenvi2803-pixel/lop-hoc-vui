@@ -45,6 +45,24 @@
     </div>
     <div class="card qcard">
       <h2>📝 Question set <span id="qCount" class="pill">0 questions</span></h2>
+      <div class="lib">
+        <div class="lib-row">
+          <label class="lib-pick">📚 My lessons <select id="libSel"></select></label>
+          <button class="btn ghost sm" id="libNew" title="Start a new empty lesson">＋ New</button>
+          <button class="btn ghost sm" id="libDel" title="Delete this lesson">🗑</button>
+        </div>
+        <div class="lib-row">
+          <input id="libName" maxlength="60" placeholder="Lesson name, e.g. Unit 3 – Reading: Floating Market">
+          <button class="btn go sm" id="libSave">💾 Save lesson</button>
+        </div>
+        <div class="lib-row lib-small">
+          <span id="libStatus"></span>
+          <span class="sp"></span>
+          <button class="btn ghost xs" id="libExport" title="Download all lessons as one backup file">⬇ Back up all</button>
+          <button class="btn ghost xs" id="libImport" title="Load lessons from a backup file">⬆ Restore</button>
+          <input type="file" id="libFile" accept=".json,application/json" hidden>
+        </div>
+      </div>
       <div class="row">
         <button class="btn ghost sm" id="loadSample">Load sample</button>
         <button class="btn ghost sm" id="openFile">Open .txt file</button>
@@ -58,6 +76,7 @@
         <button class="btn sm tpl" data-tpl="order">🧩 Word order</button>
         <button class="btn sm tpl" data-tpl="error">🔍 Find the mistake</button>
         <button class="btn sm tpl" data-tpl="listen">🎧 Dictation</button>
+        <button class="btn sm tpl rd" data-tpl="reading">📖 Reading passage</button>
       </div>
       <div id="helpBox" class="help" hidden>
         Separate questions with <b>one blank line</b>. Use the "Add" buttons above to insert a template, then edit it.
@@ -68,6 +87,8 @@
           <tr><td>🧩 Word order</td><td><code>[ORDER] the correct sentence</code> – it is shuffled automatically. To keep phrases together, separate chunks with <code> / </code></td></tr>
           <tr><td>🔍 Find the mistake</td><td><code>[ERROR]</code> put 2–4 parts in <code>[ ]</code> and mark the wrong one with <code>*</code>: <code>[*have]</code></td></tr>
           <tr><td>🎧 Dictation</td><td><code>[LISTEN] the sentence to be read</code>. Students listen and type it.</td></tr>
+          <tr><td>📖 Reading</td><td><code>[READING] title</code> → paste the passage (blank lines between paragraphs are fine) → <code>[QUESTIONS]</code> → the questions, written like any type above → <code>[END READING]</code>.
+            Add <code>Time: 120</code> right under <code>[READING]</code> to set the reading time (otherwise it's calculated from the word count). Reading questions get 30 seconds each.</td></tr>
         </table>
         Add a line <code>Time: 30</code> if a question needs more than 20 seconds. Typed answers ignore capital letters and punctuation.
       </div>
@@ -107,6 +128,7 @@
       <div id="students"></div>
       <div id="labels"></div>
     </div>
+    <div id="passage" class="passage" hidden></div>
     <div id="caption" class="caption" hidden></div>
     <div id="podium" class="podium" hidden></div>
     <canvas id="confetti" width="1600" height="900"></canvas>
